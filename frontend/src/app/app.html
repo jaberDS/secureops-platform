@@ -1,0 +1,13 @@
+<h1>SecureOps Platform</h1>
+
+<h2>Employees</h2>
+
+<p>Number of employees: {{ employees.length }}</p>
+
+@for (employee of employees; track employee.id) {
+  <div>
+    <strong>{{ employee.firstName }} {{ employee.lastName }}</strong>
+    <br>
+    Email: {{ employee.email }}
+  </div>
+}
