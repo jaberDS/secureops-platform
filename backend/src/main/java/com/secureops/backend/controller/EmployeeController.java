@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public Employee createEmployee(@RequestBody Employee employee) {
+    public Employee createEmployee(@Valid @RequestBody Employee employee) {
         return employeeService.createEmployee(employee);
     }
 }
