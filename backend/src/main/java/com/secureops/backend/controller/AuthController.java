@@ -3,12 +3,14 @@ package com.secureops.backend.controller;
 import com.secureops.backend.dto.LoginRequest;
 import com.secureops.backend.dto.RegisterRequest;
 import com.secureops.backend.security.JwtService;
+import com.secureops.backend.service.AuditLogService;
 import com.secureops.backend.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,15 +21,18 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AuditLogService auditLogService;
 
     public AuthController(
             UserService userService,
             AuthenticationManager authenticationManager,
-            JwtService jwtService) {
+            JwtService jwtService,
+            AuditLogService auditLogService) {
 
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping("/register")
@@ -35,6 +40,7 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request) {
 
         if (userService.emailExists(request.getEmail())) {
+
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
                     .body("Email already exists");
@@ -51,15 +57,38 @@ public class AuthController {
     public ResponseEntity<String> login(
             @Valid @RequestBody LoginRequest request) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
 
-        String token = jwtService.generateToken(request.getEmail());
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
 
-        return ResponseEntity.ok(token);
+            auditLogService.logSecurityEvent(
+                    request.getEmail(),
+                    "LOGIN_SUCCESS",
+                    "Successful authentication"
+            );
+
+            String token = jwtService.generateToken(
+                    request.getEmail()
+            );
+
+            return ResponseEntity.ok(token);
+
+        } catch (AuthenticationException exception) {
+
+            auditLogService.logSecurityEvent(
+                    request.getEmail(),
+                    "LOGIN_FAILURE",
+                    "Authentication failed"
+            );
+
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
+        }
     }
 }

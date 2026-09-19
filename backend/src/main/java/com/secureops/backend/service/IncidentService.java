@@ -16,13 +16,16 @@ public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     public IncidentService(
             IncidentRepository incidentRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            AuditLogService auditLogService) {
 
         this.incidentRepository = incidentRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     public List<Incident> getAllIncidents() {
@@ -40,15 +43,25 @@ public class IncidentService {
                         ));
 
         incident.setReportedBy(reporter);
-
         incident.setStatus(IncidentStatus.OPEN);
 
-        return incidentRepository.save(incident);
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.log(
+                reporterEmail,
+                "CREATE",
+                "INCIDENT",
+                savedIncident.getId(),
+                "Incident created"
+        );
+
+        return savedIncident;
     }
 
     public Incident assignIncident(
             Long incidentId,
-            AssignIncidentRequest request) {
+            AssignIncidentRequest request,
+            String actorEmail) {
 
         Incident incident = incidentRepository.findById(incidentId)
                 .orElseThrow(() ->
@@ -75,12 +88,23 @@ public class IncidentService {
             incident.setStatus(IncidentStatus.ASSIGNED);
         }
 
-        return incidentRepository.save(incident);
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.log(
+                actorEmail,
+                "ASSIGN",
+                "INCIDENT",
+                savedIncident.getId(),
+                "Incident assigned to " + analyst.getEmail()
+        );
+
+        return savedIncident;
     }
 
     public Incident updateStatus(
             Long incidentId,
-            IncidentStatus newStatus) {
+            IncidentStatus newStatus,
+            String actorEmail) {
 
         Incident incident = incidentRepository.findById(incidentId)
                 .orElseThrow(() ->
@@ -101,7 +125,20 @@ public class IncidentService {
 
         incident.setStatus(newStatus);
 
-        return incidentRepository.save(incident);
+        Incident savedIncident = incidentRepository.save(incident);
+
+        auditLogService.log(
+                actorEmail,
+                "STATUS_CHANGE",
+                "INCIDENT",
+                savedIncident.getId(),
+                "Status changed from "
+                        + currentStatus
+                        + " to "
+                        + newStatus
+        );
+
+        return savedIncident;
     }
 
     private boolean isValidTransition(

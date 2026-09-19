@@ -41,22 +41,30 @@ public class IncidentController {
     @PatchMapping("/{id}/status")
     public Incident updateStatus(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateIncidentStatusRequest request) {
+            @Valid @RequestBody UpdateIncidentStatusRequest request,
+            Authentication authentication) {
+
+        String actorEmail = authentication.getName();
 
         return incidentService.updateStatus(
                 id,
-                request.getStatus()
+                request.getStatus(),
+                actorEmail
         );
     }
 
     @PatchMapping("/{id}/assign")
     public Incident assignIncident(
             @PathVariable Long id,
-            @Valid @RequestBody AssignIncidentRequest request) {
+            @Valid @RequestBody AssignIncidentRequest request,
+            Authentication authentication) {
+
+        String actorEmail = authentication.getName();
 
         return incidentService.assignIncident(
                 id,
-                request
+                request,
+                actorEmail
         );
     }
 }
