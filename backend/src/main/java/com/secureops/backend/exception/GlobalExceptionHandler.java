@@ -21,7 +21,10 @@ public class GlobalExceptionHandler {
         exception.getBindingResult()
                 .getFieldErrors()
                 .forEach(error ->
-                        errors.put(error.getField(), error.getDefaultMessage())
+                        errors.put(
+                                error.getField(),
+                                error.getDefaultMessage()
+                        )
                 );
 
         Map<String, Object> response = new HashMap<>();
@@ -29,6 +32,20 @@ public class GlobalExceptionHandler {
         response.put("status", 400);
         response.put("message", "Validation failed");
         response.put("errors", errors);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+            IllegalArgumentException exception) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("status", 400);
+        response.put("message", exception.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)

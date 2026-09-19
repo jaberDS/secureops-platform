@@ -1,5 +1,6 @@
 package com.secureops.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,6 +14,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String passwordHash;
 
@@ -20,8 +22,7 @@ public class User {
     @Column(nullable = false, length = 30)
     private Role role;
 
-    public User() {
-    }
+    public User() {}
 
     public Long getId() {
         return id;
