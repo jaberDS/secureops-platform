@@ -1,5 +1,6 @@
 package com.secureops.backend.service;
 
+import com.secureops.backend.dto.AuditLogResponse;
 import com.secureops.backend.entity.AuditLog;
 import com.secureops.backend.entity.User;
 import com.secureops.backend.repository.AuditLogRepository;
@@ -70,7 +71,69 @@ public class AuditLogService {
         return auditLogRepository.save(auditLog);
     }
 
-    public List<AuditLog> getAllLogs() {
-        return auditLogRepository.findAll();
+    public List<AuditLogResponse> getAllLogs() {
+
+        return auditLogRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getLogsByAction(String action) {
+
+        return auditLogRepository.findByAction(action)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getLogsByResourceType(
+            String resourceType) {
+
+        return auditLogRepository.findByResourceType(resourceType)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getLogsByActor(String actor) {
+
+        return auditLogRepository.findByUser_Email(actor)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<AuditLogResponse> getLogsByResourceTypeAndAction(
+            String resourceType,
+            String action) {
+
+        return auditLogRepository
+                .findByResourceTypeAndAction(
+                        resourceType,
+                        action
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private AuditLogResponse toResponse(AuditLog auditLog) {
+
+        String actor = null;
+
+        if (auditLog.getUser() != null) {
+            actor = auditLog.getUser().getEmail();
+        }
+
+        return new AuditLogResponse(
+                auditLog.getId(),
+                actor,
+                auditLog.getAction(),
+                auditLog.getResourceType(),
+                auditLog.getResourceId(),
+                auditLog.getTimestamp(),
+                auditLog.getDetails()
+        );
     }
 }

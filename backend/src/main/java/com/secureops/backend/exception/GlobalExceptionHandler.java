@@ -2,6 +2,7 @@ package com.secureops.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -13,7 +14,8 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
+    public ResponseEntity<Map<String, Object>>
+    handleValidationException(
             MethodArgumentNotValidException exception) {
 
         Map<String, String> errors = new HashMap<>();
@@ -38,17 +40,50 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException exception) {
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>>
+    handleUnreadableMessage(
+            HttpMessageNotReadableException exception) {
 
         Map<String, Object> response = new HashMap<>();
 
         response.put("status", 400);
-        response.put("message", exception.getMessage());
+        response.put(
+                "message",
+                "Invalid request body or invalid field value"
+        );
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>>
+    handleIllegalArgumentException(
+            IllegalArgumentException exception) {
+
+        String message = exception.getMessage();
+
+        if ("User not found".equals(message)) {
+
+            Map<String, Object> response = new HashMap<>();
+
+            response.put("status", 404);
+            response.put("message", message);
+
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(response);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("status", 409);
+        response.put("message", message);
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(response);
     }
 }

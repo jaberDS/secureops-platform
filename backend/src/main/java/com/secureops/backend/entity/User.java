@@ -22,7 +22,12 @@ public class User {
     @Column(nullable = false, length = 30)
     private Role role;
 
-    public User() {}
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AccountStatus status;
+
+    public User() {
+    }
 
     public Long getId() {
         return id;
@@ -54,5 +59,13 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public AccountStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
     }
 }

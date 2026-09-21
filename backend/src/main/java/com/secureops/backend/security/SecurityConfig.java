@@ -28,31 +28,26 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
-
-                // Disable CSRF because we are using JWT
                 .csrf(csrf -> csrf.disable())
 
-                // JWT authentication is stateless
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
 
-                        // =========================
-                        // Authentication
-                        // =========================
+                        // Authentication endpoints
                         .requestMatchers("/api/auth/**")
                         .permitAll()
 
+                        // ADMIN endpoints
+                        // This must be protected before generic rules.
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
 
-                        // =========================
-                        // Investigation Notes
-                        // =========================
-
+                        // Investigation notes - read access
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/incidents/*/notes"
@@ -63,6 +58,7 @@ public class SecurityConfig {
                                 "MANAGER"
                         )
 
+                        // Investigation notes - create access
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/incidents/*/notes"
@@ -72,11 +68,7 @@ public class SecurityConfig {
                                 "SECURITY_ANALYST"
                         )
 
-
-                        // =========================
-                        // Incident Management
-                        // =========================
-
+                        // Incident read access
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/incidents/**"
@@ -87,6 +79,7 @@ public class SecurityConfig {
                                 "MANAGER"
                         )
 
+                        // Incident creation
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/incidents/**"
@@ -98,6 +91,7 @@ public class SecurityConfig {
                                 "EMPLOYEE"
                         )
 
+                        // Incident status updates
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/incidents/**"
@@ -107,11 +101,7 @@ public class SecurityConfig {
                                 "SECURITY_ANALYST"
                         )
 
-
-                        // =========================
-                        // Audit Logs
-                        // =========================
-
+                        // Audit logs
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/audit-logs"
@@ -121,30 +111,19 @@ public class SecurityConfig {
                                 "SECURITY_ANALYST"
                         )
 
-
-                        // =========================
-                        // Role-based endpoints
-                        // =========================
-
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
-
+                        // Security analyst endpoints
                         .requestMatchers("/api/security/**")
                         .hasRole("SECURITY_ANALYST")
 
+                        // Manager endpoints
                         .requestMatchers("/api/manager/**")
                         .hasRole("MANAGER")
 
-
-                        // =========================
-                        // Everything else
-                        // =========================
-
+                        // Everything else requires authentication
                         .anyRequest()
                         .authenticated()
                 )
 
-                // JWT filter runs before Spring's authentication filter
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -152,7 +131,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider(
@@ -166,7 +144,6 @@ public class SecurityConfig {
 
         return provider;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(

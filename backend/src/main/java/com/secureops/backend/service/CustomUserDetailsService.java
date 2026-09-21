@@ -1,5 +1,6 @@
 package com.secureops.backend.security;
 
+import com.secureops.backend.entity.AccountStatus;
 import com.secureops.backend.entity.User;
 import com.secureops.backend.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,7 +13,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(
+            UserRepository userRepository) {
+
         this.userRepository = userRepository;
     }
 
@@ -22,12 +25,19 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new UsernameNotFoundException("User not found"));
+                        new UsernameNotFoundException(
+                                "User not found"
+                        )
+                );
+
+        boolean disabled =
+                user.getStatus() == AccountStatus.DISABLED;
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPasswordHash())
                 .roles(user.getRole().name())
+                .disabled(disabled)
                 .build();
     }
 }
