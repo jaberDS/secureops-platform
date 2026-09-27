@@ -1,21 +1,17 @@
 package com.secureops.backend.dto;
 
-import com.secureops.backend.entity.Role;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public class CreateUserRequest {
+public class PasswordResetConfirmRequest {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
+    @NotBlank(message = "Reset token is required")
     @Size(
-            max = 100,
-            message = "Email must not exceed 100 characters"
+            max = 200,
+            message = "Reset token is too long"
     )
-    private String email;
+    private String token;
 
     @NotBlank(message = "Password is required")
     @Size(
@@ -29,18 +25,15 @@ public class CreateUserRequest {
     )
     private String password;
 
-    @NotNull(message = "Role is required")
-    private Role role;
-
-    public CreateUserRequest() {
+    public PasswordResetConfirmRequest() {
     }
 
-    public String getEmail() {
-        return email;
+    public String getToken() {
+        return token;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public String getPassword() {
@@ -49,13 +42,5 @@ public class CreateUserRequest {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 }

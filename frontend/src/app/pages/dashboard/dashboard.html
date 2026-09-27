@@ -1,0 +1,561 @@
+<div class="soc-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-icon">S</div>
+
+      <div>
+        <h1>SecureOps</h1>
+        <span>Security Platform</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="section-title">MONITORING</span>
+
+      <button class="nav-item active">
+        <span class="nav-icon">?</span>
+        <span>Dashboard</span>
+      </button>
+
+      <button class="nav-item">
+        <span class="nav-icon">?</span>
+        <span>Incidents</span>
+        <span class="nav-badge">{{ activeIncidents }}</span>
+      </button>
+
+      <button class="nav-item">
+        <span class="nav-icon">?</span>
+        <span>Security Events</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="section-title">MANAGEMENT</span>
+
+      <button class="nav-item">
+        <span class="nav-icon">?</span>
+        <span>Users</span>
+      </button>
+
+      <button class="nav-item">
+        <span class="nav-icon">?</span>
+        <span>Audit Logs</span>
+      </button>
+
+      <button class="nav-item">
+        <span class="nav-icon">?</span>
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <div class="sidebar-bottom">
+
+      <div class="connection-status">
+        <span class="status-dot"></span>
+
+        <div>
+          <strong>System Online</strong>
+          <small>All services operational</small>
+        </div>
+      </div>
+
+      <button class="logout-button" (click)="logout()">
+        <span>?</span>
+        Logout
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+
+      <div>
+        <span class="topbar-label">SECURITY OPERATIONS CENTER</span>
+        <h2>Command Center</h2>
+      </div>
+
+      <div class="topbar-right">
+
+        <div class="live-clock">
+          <span class="clock-dot"></span>
+
+          <div>
+            <span class="clock-label">LOCAL TIME</span>
+            <strong>{{ currentTime | date:'HH:mm:ss' }}</strong>
+          </div>
+        </div>
+
+        <div class="notification">
+          <span class="notification-icon">??</span>
+          <span class="notification-count">{{ criticalAlerts }}</span>
+        </div>
+
+        <div class="profile">
+          <div class="avatar">A</div>
+
+          <div class="profile-info">
+            <strong>Administrator</strong>
+            <span>ADMIN</span>
+          </div>
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <!-- CONTENT -->
+    <section class="content">
+
+      <!-- WELCOME -->
+      <div class="welcome-row">
+
+        <div>
+          <span class="page-kicker">REAL-TIME SECURITY MONITORING</span>
+
+          <h3>Security Overview</h3>
+
+          <p>
+            Monitor your SecureOps environment and track security activity.
+          </p>
+        </div>
+
+        <div class="live-indicator">
+          <span class="pulse"></span>
+          LIVE MONITORING
+        </div>
+
+      </div>
+
+
+      <!-- STAT CARDS -->
+      <div class="stats-grid">
+
+        <div class="stat-card">
+
+          <div class="stat-top">
+            <span class="stat-label">ACTIVE INCIDENTS</span>
+            <span class="stat-icon orange">?</span>
+          </div>
+
+          <div class="stat-value">
+            {{ activeIncidents }}
+          </div>
+
+          <div class="stat-footer">
+            <span class="trend positive">? 8.4%</span>
+            <span>vs last hour</span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-top">
+            <span class="stat-label">CRITICAL ALERTS</span>
+            <span class="stat-icon red">!</span>
+          </div>
+
+          <div class="stat-value">
+            {{ criticalAlerts }}
+          </div>
+
+          <div class="stat-footer">
+            <span class="trend negative">? Monitoring</span>
+            <span>requires attention</span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-top">
+            <span class="stat-label">TOTAL USERS</span>
+            <span class="stat-icon blue">?</span>
+          </div>
+
+          <div class="stat-value">
+            {{ totalUsers }}
+          </div>
+
+          <div class="stat-footer">
+            <span class="trend positive">? Active</span>
+            <span>registered accounts</span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-top">
+            <span class="stat-label">AUDIT EVENTS</span>
+            <span class="stat-icon purple">?</span>
+          </div>
+
+          <div class="stat-value">
+            {{ auditEvents }}
+          </div>
+
+          <div class="stat-footer">
+            <span class="trend positive">? Live</span>
+            <span>events recorded</span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- MAIN MONITORING GRID -->
+      <div class="monitoring-grid">
+
+
+        <!-- ACTIVITY CHART -->
+        <div class="panel activity-panel">
+
+          <div class="panel-header">
+
+            <div>
+              <span class="panel-kicker">EVENT TELEMETRY</span>
+              <h4>Security Activity</h4>
+            </div>
+
+            <div class="panel-live">
+              <span></span>
+              LIVE
+            </div>
+
+          </div>
+
+          <div class="chart">
+
+            <div class="chart-y-axis">
+              <span>100</span>
+              <span>75</span>
+              <span>50</span>
+              <span>25</span>
+              <span>0</span>
+            </div>
+
+            <div class="chart-area">
+
+              <div class="grid-line line-100"></div>
+              <div class="grid-line line-75"></div>
+              <div class="grid-line line-50"></div>
+              <div class="grid-line line-25"></div>
+              <div class="grid-line line-0"></div>
+
+              <div class="bars">
+
+                @for (value of chartValues; track $index) {
+
+                  <div class="bar-container">
+
+                    <div
+                      class="bar"
+                      [style.height.%]="value"
+                      title="{{ value }} events"
+                    ></div>
+
+                    <span class="bar-label">
+                      {{ $index + 1 }}
+                    </span>
+
+                  </div>
+
+                }
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="chart-footer">
+
+            <span>Last 12 monitoring intervals</span>
+
+            <span class="activity-status">
+              <span></span>
+              Events updating automatically
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- THREAT LEVEL -->
+        <div class="panel threat-panel">
+
+          <div class="panel-header">
+
+            <div>
+              <span class="panel-kicker">RISK ENGINE</span>
+              <h4>Threat Level</h4>
+            </div>
+
+            <span class="refresh-icon">?</span>
+
+          </div>
+
+          <div class="threat-content">
+
+            <div
+              class="threat-circle"
+              [class.safe]="getThreatClass() === 'safe'"
+              [class.warning]="getThreatClass() === 'warning'"
+              [class.critical]="getThreatClass() === 'critical'"
+              [style.--score]="threatScore"
+            >
+
+              <div class="threat-inner">
+
+                <strong>{{ threatScore }}</strong>
+
+                <span>RISK SCORE</span>
+
+              </div>
+
+            </div>
+
+            <div
+              class="threat-label"
+              [class.safe]="getThreatClass() === 'safe'"
+              [class.warning]="getThreatClass() === 'warning'"
+              [class.critical]="getThreatClass() === 'critical'"
+            >
+              {{ getThreatLabel() }}
+            </div>
+
+            <p>
+              Security environment is being monitored continuously.
+            </p>
+
+          </div>
+
+          <div class="threat-footer">
+
+            <div>
+              <span class="legend-dot low"></span>
+              Low
+            </div>
+
+            <div>
+              <span class="legend-dot medium"></span>
+              Elevated
+            </div>
+
+            <div>
+              <span class="legend-dot high"></span>
+              High
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- LOWER GRID -->
+      <div class="lower-grid">
+
+
+        <!-- SECURITY EVENTS -->
+        <div class="panel events-panel">
+
+          <div class="panel-header">
+
+            <div>
+              <span class="panel-kicker">LIVE FEED</span>
+              <h4>Recent Security Events</h4>
+            </div>
+
+            <button class="view-all">
+              View all ?
+            </button>
+
+          </div>
+
+          <div class="events-table">
+
+            <div class="table-head">
+              <span>TIME</span>
+              <span>EVENT</span>
+              <span>SOURCE</span>
+              <span>SEVERITY</span>
+            </div>
+
+            @for (event of securityEvents; track $index) {
+
+              <div class="event-row">
+
+                <span class="event-time">
+                  {{ event.time }}
+                </span>
+
+                <span class="event-name">
+
+                  <span
+                    class="event-indicator"
+                    [class.low]="event.severity === 'LOW'"
+                    [class.medium]="event.severity === 'MEDIUM'"
+                    [class.high]="event.severity === 'HIGH'"
+                    [class.critical]="event.severity === 'CRITICAL'"
+                  ></span>
+
+                  {{ event.type }}
+
+                </span>
+
+                <span class="event-source">
+                  {{ event.source }}
+                </span>
+
+                <span
+                  class="severity"
+                  [class.low]="event.severity === 'LOW'"
+                  [class.medium]="event.severity === 'MEDIUM'"
+                  [class.high]="event.severity === 'HIGH'"
+                  [class.critical]="event.severity === 'CRITICAL'"
+                >
+                  {{ event.severity }}
+                </span>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- SERVICE HEALTH -->
+        <div class="panel health-panel">
+
+          <div class="panel-header">
+
+            <div>
+              <span class="panel-kicker">INFRASTRUCTURE</span>
+              <h4>Service Health</h4>
+            </div>
+
+            <span class="health-summary">
+              4 / 4
+            </span>
+
+          </div>
+
+
+          <div class="services">
+
+            <div class="service">
+
+              <div class="service-icon">?</div>
+
+              <div class="service-info">
+                <strong>API Server</strong>
+                <span>localhost:8081</span>
+              </div>
+
+              <div class="service-status">
+                <span></span>
+                UP
+              </div>
+
+            </div>
+
+
+            <div class="service">
+
+              <div class="service-icon">?</div>
+
+              <div class="service-info">
+                <strong>PostgreSQL</strong>
+                <span>localhost:5432</span>
+              </div>
+
+              <div class="service-status">
+                <span></span>
+                UP
+              </div>
+
+            </div>
+
+
+            <div class="service">
+
+              <div class="service-icon">?</div>
+
+              <div class="service-info">
+                <strong>Authentication</strong>
+                <span>JWT Security</span>
+              </div>
+
+              <div class="service-status">
+                <span></span>
+                UP
+              </div>
+
+            </div>
+
+
+            <div class="service">
+
+              <div class="service-icon">?</div>
+
+              <div class="service-info">
+                <strong>Audit Logging</strong>
+                <span>Security Events</span>
+              </div>
+
+              <div class="service-status">
+                <span></span>
+                UP
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- FOOTER -->
+      <footer class="dashboard-footer">
+
+        <span>
+          SecureOps Platform
+        </span>
+
+        <span>
+          Security Operations Center
+        </span>
+
+        <span>
+          {{ systemStatus }}
+        </span>
+
+      </footer>
+
+    </section>
+
+  </main>
+
+</div>

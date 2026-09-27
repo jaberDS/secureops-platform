@@ -8,9 +8,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
@@ -35,50 +35,77 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String authHeader =
+                request.getHeader("Authorization");
 
-        // No Authorization header
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null ||
+                !authHeader.startsWith("Bearer ")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
 
-        String email;
-
         try {
-            email = jwtService.extractEmail(token);
-        } catch (Exception exception) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
-        // Avoid replacing an existing authentication
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+            String email =
+                    jwtService.extractEmail(token);
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+            if (email != null &&
+                    SecurityContextHolder
+                            .getContext()
+                            .getAuthentication() == null) {
 
-            if (jwtService.isTokenValid(token, userDetails)) {
+                UserDetails userDetails =
+                        userDetailsService
+                                .loadUserByUsername(email);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                /*
+                 * Security check:
+                 *
+                 * A disabled account must never
+                 * authenticate using an old JWT.
+                 */
+                if (userDetails.isEnabled() &&
+                        jwtService.isTokenValid(
+                                token,
+                                userDetails
+                        )) {
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                    UsernamePasswordAuthenticationToken
+                            authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authentication);
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
+
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(
+                                    authentication
+                            );
+                }
             }
+
+        } catch (Exception exception) {
+
+            /*
+             * Invalid, expired, malformed,
+             * unknown-user, or disabled-user tokens
+             * are simply treated as unauthenticated.
+             *
+             * Never expose token parsing details
+             * to the client.
+             */
+            SecurityContextHolder
+                    .clearContext();
         }
 
         filterChain.doFilter(request, response);

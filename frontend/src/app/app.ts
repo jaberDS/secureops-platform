@@ -1,26 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { Employee, EmployeeService } from './services/employee';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnInit {
-
-  employees: Employee[] = [];
-
-  constructor(private employeeService: EmployeeService) {}
-
-  ngOnInit(): void {
-    this.employeeService.getEmployees().subscribe({
-      next: (data) => {
-        console.log('Employees received:', data);
-        this.employees = data;
-      },
-      error: (error) => {
-        console.error('Error loading employees:', error);
-      }
-    });
-  }
-}
+export class App {}

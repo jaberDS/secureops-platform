@@ -18,21 +18,34 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailNormalizationService emailNormalizationService;
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailNormalizationService emailNormalizationService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailNormalizationService =
+                emailNormalizationService;
     }
 
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+
+        String normalizedEmail =
+                emailNormalizationService.normalize(email);
+
+        return userRepository.findByEmail(normalizedEmail);
     }
 
     public boolean emailExists(String email) {
-        return userRepository.findByEmail(email).isPresent();
+
+        String normalizedEmail =
+                emailNormalizationService.normalize(email);
+
+        return userRepository.findByEmail(normalizedEmail)
+                .isPresent();
     }
 
     public User saveUser(User user) {
@@ -55,9 +68,14 @@ public class UserService {
 
     public User createUser(RegisterRequest request) {
 
+        String normalizedEmail =
+                emailNormalizationService.normalize(
+                        request.getEmail()
+                );
+
         User user = new User();
 
-        user.setEmail(request.getEmail());
+        user.setEmail(normalizedEmail);
 
         String hashedPassword =
                 passwordEncoder.encode(
@@ -65,9 +83,7 @@ public class UserService {
                 );
 
         user.setPasswordHash(hashedPassword);
-
         user.setRole(Role.EMPLOYEE);
-
         user.setStatus(AccountStatus.ACTIVE);
 
         return userRepository.save(user);
@@ -108,7 +124,13 @@ public class UserService {
             String password,
             Role role) {
 
-        if (userRepository.findByEmail(email).isPresent()) {
+        String normalizedEmail =
+                emailNormalizationService.normalize(email);
+
+        if (userRepository.findByEmail(
+                normalizedEmail
+        ).isPresent()) {
+
             throw new IllegalArgumentException(
                     "Email already exists"
             );
@@ -116,10 +138,12 @@ public class UserService {
 
         User user = new User();
 
-        user.setEmail(email);
+        user.setEmail(normalizedEmail);
+
         user.setPasswordHash(
                 passwordEncoder.encode(password)
         );
+
         user.setRole(role);
         user.setStatus(AccountStatus.ACTIVE);
 
@@ -136,6 +160,29 @@ public class UserService {
                                 "User not found"
                         )
                 );
+
+        /*
+         * Security rule:
+         *
+         * Never remove the last active ADMIN.
+         */
+        if (user.getRole() == Role.ADMIN &&
+                user.getStatus() == AccountStatus.ACTIVE &&
+                role != Role.ADMIN) {
+
+            long activeAdminCount =
+                    userRepository.countByRoleAndStatus(
+                            Role.ADMIN,
+                            AccountStatus.ACTIVE
+                    );
+
+            if (activeAdminCount <= 1) {
+
+                throw new IllegalArgumentException(
+                        "Cannot remove the last active ADMIN role"
+                );
+            }
+        }
 
         user.setRole(role);
 
@@ -154,20 +201,31 @@ public class UserService {
                 );
 
         if (request.getEmail() != null &&
-                !request.getEmail().equals(user.getEmail())) {
+                !request.getEmail().isBlank()) {
 
-            Optional<User> existingUser =
-                    userRepository.findByEmail(
+            String normalizedEmail =
+                    emailNormalizationService.normalize(
                             request.getEmail()
                     );
 
-            if (existingUser.isPresent()) {
-                throw new IllegalArgumentException(
-                        "Email already exists"
-                );
-            }
+            if (!normalizedEmail.equals(
+                    user.getEmail()
+            )) {
 
-            user.setEmail(request.getEmail());
+                Optional<User> existingUser =
+                        userRepository.findByEmail(
+                                normalizedEmail
+                        );
+
+                if (existingUser.isPresent()) {
+
+                    throw new IllegalArgumentException(
+                            "Email already exists"
+                    );
+                }
+
+                user.setEmail(normalizedEmail);
+            }
         }
 
         if (request.getPassword() != null &&
@@ -210,6 +268,7 @@ public class UserService {
                     );
 
             if (activeAdminCount <= 1) {
+
                 throw new IllegalArgumentException(
                         "Cannot disable the last active ADMIN"
                 );

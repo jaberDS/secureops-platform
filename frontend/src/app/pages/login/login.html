@@ -1,0 +1,62 @@
+<div class="login-page">
+
+  <div class="login-card">
+
+    <h1>SecureOps Platform</h1>
+
+    <h2>Security Login</h2>
+
+    <p class="subtitle">
+      Sign in to access the security dashboard.
+    </p>
+
+    <form (ngSubmit)="login()">
+
+      <div class="form-group">
+        <label for="email">Email</label>
+
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="credentials.email"
+          placeholder="Enter your email"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="credentials.password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+        />
+      </div>
+
+      @if (errorMessage) {
+        <div class="error-message">
+          {{ errorMessage }}
+        </div>
+      }
+
+      <button
+        type="submit"
+        [disabled]="isLoading"
+      >
+        @if (isLoading) {
+          Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+
+    </form>
+
+  </div>
+
+</div>

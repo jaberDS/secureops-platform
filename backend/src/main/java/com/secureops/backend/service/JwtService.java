@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -15,23 +16,38 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET =
-            "SecureOpsPlatformSecretKeyForJwt2026VeryLong";
+    private final SecretKey secretKey;
+    private final long expirationTime;
 
-    private static final long EXPIRATION_TIME =
-            1000 * 60 * 60; // 1 hour
+    public JwtService(
+            @Value("${security.jwt.secret}") String secret,
+            @Value("${security.jwt.expiration-ms:3600000}") long expirationTime) {
 
-    private final SecretKey secretKey =
-            Keys.hmacShaKeyFor(
-                    SECRET.getBytes(StandardCharsets.UTF_8)
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException(
+                    "JWT secret must contain at least 32 characters"
             );
+        }
+
+        this.secretKey = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
+
+        if (expirationTime <= 0) {
+            throw new IllegalStateException(
+                    "JWT expiration must be greater than zero"
+            );
+        }
+
+        this.expirationTime = expirationTime;
+    }
 
     public String generateToken(String email) {
 
         Date now = new Date();
 
         Date expiration =
-                new Date(now.getTime() + EXPIRATION_TIME);
+                new Date(now.getTime() + expirationTime);
 
         return Jwts.builder()
                 .subject(email)

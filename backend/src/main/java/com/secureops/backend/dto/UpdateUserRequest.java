@@ -1,15 +1,11 @@
 package com.secureops.backend.dto;
 
-import com.secureops.backend.entity.Role;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public class CreateUserRequest {
+public class UpdateUserRequest {
 
-    @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
     @Size(
             max = 100,
@@ -17,7 +13,6 @@ public class CreateUserRequest {
     )
     private String email;
 
-    @NotBlank(message = "Password is required")
     @Size(
             min = 12,
             max = 100,
@@ -29,10 +24,7 @@ public class CreateUserRequest {
     )
     private String password;
 
-    @NotNull(message = "Role is required")
-    private Role role;
-
-    public CreateUserRequest() {
+    public UpdateUserRequest() {
     }
 
     public String getEmail() {
@@ -49,13 +41,5 @@ public class CreateUserRequest {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 }
