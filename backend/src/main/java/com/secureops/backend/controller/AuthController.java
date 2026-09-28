@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
@@ -80,12 +81,13 @@ public class AuthController {
 
         try {
 
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            normalizedEmail,
-                            request.getPassword()
-                    )
-            );
+            Authentication authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    normalizedEmail,
+                                    request.getPassword()
+                            )
+                    );
 
             auditLogService.logSecurityEvent(
                     normalizedEmail,
@@ -93,9 +95,27 @@ public class AuthController {
                     "Successful authentication"
             );
 
+            String role =
+                    authentication.getAuthorities()
+                            .stream()
+                            .findFirst()
+                            .map(authority ->
+                                    authority.getAuthority()
+                                            .replace("ROLE_", "")
+                            )
+                            .orElse(null);
+
+            if (role == null) {
+
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .build();
+            }
+
             String token =
                     jwtService.generateToken(
-                            normalizedEmail
+                            normalizedEmail,
+                            role
                     );
 
             return ResponseEntity.ok(

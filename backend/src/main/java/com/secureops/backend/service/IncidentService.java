@@ -1,6 +1,7 @@
 package com.secureops.backend.service;
 
 import com.secureops.backend.dto.AssignIncidentRequest;
+import com.secureops.backend.dto.IncidentResponse;
 import com.secureops.backend.entity.Incident;
 import com.secureops.backend.entity.IncidentStatus;
 import com.secureops.backend.entity.Role;
@@ -8,6 +9,7 @@ import com.secureops.backend.entity.User;
 import com.secureops.backend.repository.IncidentRepository;
 import com.secureops.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -28,11 +30,16 @@ public class IncidentService {
         this.auditLogService = auditLogService;
     }
 
-    public List<Incident> getAllIncidents() {
-        return incidentRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<IncidentResponse> getAllIncidents() {
+
+        return incidentRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public Incident createIncident(
+    public IncidentResponse createIncident(
             Incident incident,
             String reporterEmail) {
 
@@ -45,7 +52,8 @@ public class IncidentService {
         incident.setReportedBy(reporter);
         incident.setStatus(IncidentStatus.OPEN);
 
-        Incident savedIncident = incidentRepository.save(incident);
+        Incident savedIncident =
+                incidentRepository.save(incident);
 
         auditLogService.log(
                 reporterEmail,
@@ -55,26 +63,28 @@ public class IncidentService {
                 "Incident created"
         );
 
-        return savedIncident;
+        return toResponse(savedIncident);
     }
 
-    public Incident assignIncident(
+    public IncidentResponse assignIncident(
             Long incidentId,
             AssignIncidentRequest request,
             String actorEmail) {
 
-        Incident incident = incidentRepository.findById(incidentId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Incident not found"
-                        ));
+        Incident incident =
+                incidentRepository.findById(incidentId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Incident not found"
+                                ));
 
-        User analyst = userRepository
-                .findByEmail(request.getAnalystEmail())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Security analyst not found"
-                        ));
+        User analyst =
+                userRepository
+                        .findByEmail(request.getAnalystEmail())
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Security analyst not found"
+                                ));
 
         if (analyst.getRole() != Role.SECURITY_ANALYST) {
             throw new IllegalArgumentException(
@@ -88,7 +98,8 @@ public class IncidentService {
             incident.setStatus(IncidentStatus.ASSIGNED);
         }
 
-        Incident savedIncident = incidentRepository.save(incident);
+        Incident savedIncident =
+                incidentRepository.save(incident);
 
         auditLogService.log(
                 actorEmail,
@@ -98,23 +109,28 @@ public class IncidentService {
                 "Incident assigned to " + analyst.getEmail()
         );
 
-        return savedIncident;
+        return toResponse(savedIncident);
     }
 
-    public Incident updateStatus(
+    public IncidentResponse updateStatus(
             Long incidentId,
             IncidentStatus newStatus,
             String actorEmail) {
 
-        Incident incident = incidentRepository.findById(incidentId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Incident not found"
-                        ));
+        Incident incident =
+                incidentRepository.findById(incidentId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Incident not found"
+                                ));
 
-        IncidentStatus currentStatus = incident.getStatus();
+        IncidentStatus currentStatus =
+                incident.getStatus();
 
-        if (!isValidTransition(currentStatus, newStatus)) {
+        if (!isValidTransition(
+                currentStatus,
+                newStatus)) {
+
             throw new IllegalArgumentException(
                     "Invalid status transition from "
                             + currentStatus
@@ -125,7 +141,8 @@ public class IncidentService {
 
         incident.setStatus(newStatus);
 
-        Incident savedIncident = incidentRepository.save(incident);
+        Incident savedIncident =
+                incidentRepository.save(incident);
 
         auditLogService.log(
                 actorEmail,
@@ -138,7 +155,35 @@ public class IncidentService {
                         + newStatus
         );
 
-        return savedIncident;
+        return toResponse(savedIncident);
+    }
+
+    private IncidentResponse toResponse(
+            Incident incident) {
+
+        String reportedByEmail = null;
+        String assignedToEmail = null;
+
+        if (incident.getReportedBy() != null) {
+            reportedByEmail =
+                    incident.getReportedBy().getEmail();
+        }
+
+        if (incident.getAssignedTo() != null) {
+            assignedToEmail =
+                    incident.getAssignedTo().getEmail();
+        }
+
+        return new IncidentResponse(
+                incident.getId(),
+                incident.getTitle(),
+                incident.getDescription(),
+                incident.getSeverity(),
+                incident.getCategory(),
+                incident.getStatus(),
+                reportedByEmail,
+                assignedToEmail
+        );
     }
 
     private boolean isValidTransition(

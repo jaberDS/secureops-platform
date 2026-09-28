@@ -42,7 +42,9 @@ public class JwtService {
         this.expirationTime = expirationTime;
     }
 
-    public String generateToken(String email) {
+    public String generateToken(
+            String email,
+            String role) {
 
         Date now = new Date();
 
@@ -51,6 +53,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(email)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(secretKey)
