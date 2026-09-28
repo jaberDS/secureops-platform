@@ -1,21 +1,27 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { interval, Subscription } from 'rxjs';
+import { EMPTY, interval, Subscription, timer } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
 import { UserService, User } from '../../services/user.service';
-import {
-  IncidentService,
-  Incident
-} from '../../services/incident.service';
+import { IncidentService, Incident } from '../../services/incident.service';
+import { AuditLogService, AuditLog } from '../../services/audit-log.service';
 import { Role } from '../../models/role';
+
+type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 interface SecurityEvent {
   time: string;
   type: string;
   source: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: Severity;
 }
 
 @Component({
@@ -30,51 +36,21 @@ export class Dashboard implements OnInit, OnDestroy {
   currentTime = new Date();
 
   activeIncidents = 0;
-  criticalAlerts = 2;
+  criticalAlerts = 0;
   totalUsers = 0;
-  auditEvents = 156;
+  auditEvents = 0;
 
-  threatScore = 28;
+  threatScore = 0;
   systemStatus = 'OPERATIONAL';
 
-  currentUserRole: Role | null = null;
-
-  chartValues = [
-    35, 52, 42, 68,
-    55, 76, 61, 82,
-    70, 88, 73, 91
-  ];
-
-  securityEvents: SecurityEvent[] = [
-    {
-      time: 'Just now',
-      type: 'LOGIN_SUCCESS',
-      source: 'admin@example.com',
-      severity: 'LOW'
-    },
-    {
-      time: '2 min ago',
-      type: 'PORT_SCAN_DETECTED',
-      source: '192.168.50.30',
-      severity: 'HIGH'
-    },
-    {
-      time: '5 min ago',
-      type: 'LOGIN_FAILURE',
-      source: 'unknown',
-      severity: 'MEDIUM'
-    },
-    {
-      time: '8 min ago',
-      type: 'INCIDENT_CREATED',
-      source: 'SOC Analyst',
-      severity: 'HIGH'
-    }
-  ];
+  chartValues = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10];
 
   users: User[] = [];
-
   incidents: Incident[] = [];
+
+  auditLogs: AuditLog[] = [];
+  recentAuditLogs: AuditLog[] = [];
+  securityEvents: SecurityEvent[] = [];
 
   isLoadingUsers = false;
   userLoadError = '';
@@ -82,24 +58,23 @@ export class Dashboard implements OnInit, OnDestroy {
   isLoadingIncidents = false;
   incidentLoadError = '';
 
+  isLoadingAuditLogs = false;
+  auditLogLoadError = '';
+
   private dashboardSubscription?: Subscription;
+  private auditRefreshSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
     private userService: UserService,
     private incidentService: IncidentService,
-    private router: Router
+    private auditLogService: AuditLogService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-
-    this.currentUserRole =
-      this.authService.getRole();
-
-    console.log(
-      'Dashboard: Current user role:',
-      this.currentUserRole
-    );
+    this.currentUserRole = this.authService.getRole();
 
     if (this.isAdmin()) {
       this.loadUsers();
@@ -113,343 +88,396 @@ export class Dashboard implements OnInit, OnDestroy {
       this.loadIncidents();
     }
 
-    this.dashboardSubscription =
-      interval(3000).subscribe(() => {
-        this.updateDashboard();
-      });
+    if (
+      this.isAdmin() ||
+      this.isSecurityAnalyst()
+    ) {
+      this.startAuditLogPolling();
+    }
+
+    this.dashboardSubscription = interval(3000).subscribe(() => {
+      this.currentTime = new Date();
+      this.refreshSecurityEvents();
+      this.cdr.markForCheck();
+    });
   }
 
   ngOnDestroy(): void {
     this.dashboardSubscription?.unsubscribe();
+    this.auditRefreshSubscription?.unsubscribe();
   }
 
-  /*
-   * ============================
-   * RBAC HELPERS
-   * ============================
-   */
+  currentUserRole: Role | null = null;
+
+  private normalize(role: unknown): string {
+    return String(role ?? '')
+      .toUpperCase()
+      .replace(/^ROLE_/, '');
+  }
+
+  private is(role: Role): boolean {
+    return (
+      this.normalize(this.currentUserRole) ===
+      this.normalize(role)
+    );
+  }
 
   isAdmin(): boolean {
-    return this.currentUserRole === Role.ADMIN;
+    return this.is(Role.ADMIN);
   }
 
   isManager(): boolean {
-    return this.currentUserRole === Role.MANAGER;
+    return this.is(Role.MANAGER);
   }
 
   isSecurityAnalyst(): boolean {
-    return this.currentUserRole === Role.SECURITY_ANALYST;
+    return this.is(Role.SECURITY_ANALYST);
   }
 
   isEmployee(): boolean {
-    return this.currentUserRole === Role.EMPLOYEE;
+    return this.is(Role.EMPLOYEE);
   }
 
   getRoleLabel(): string {
+    if (this.isAdmin()) return 'Administrator';
+    if (this.isManager()) return 'Manager';
+    if (this.isSecurityAnalyst()) return 'Security Analyst';
+    if (this.isEmployee()) return 'Employee';
+    return 'Unknown Role';
+  }
 
-    switch (this.currentUserRole) {
+  getRoleInitial(): string {
+    if (this.isAdmin()) return 'A';
+    if (this.isManager()) return 'M';
+    if (this.isSecurityAnalyst()) return 'S';
+    return 'E';
+  }
 
-      case Role.ADMIN:
-        return 'Administrator';
-
-      case Role.MANAGER:
-        return 'Manager';
-
-      case Role.SECURITY_ANALYST:
-        return 'Security Analyst';
-
-      case Role.EMPLOYEE:
-        return 'Employee';
-
+  private describeError(
+    error: any,
+    forbiddenMessage: string,
+    fallback: string
+  ): string {
+    switch (error?.status) {
+      case 401:
+        return 'Authentication failed. Your session may have expired.';
+      case 403:
+        return forbiddenMessage;
+      case 0:
+        return 'Cannot connect to the backend.';
       default:
-        return 'Unknown Role';
+        return fallback;
     }
   }
 
-  /*
-   * ============================
-   * ADMIN USER MANAGEMENT
-   * ============================
-   */
-
   private loadUsers(): void {
-
     this.isLoadingUsers = true;
     this.userLoadError = '';
 
     this.userService.getUsers().subscribe({
-
       next: (users) => {
-
-        console.log(
-          'Protected user API request successful'
-        );
-
-        console.log(
-          'Users received from backend:',
-          users
-        );
-
         this.users = users;
         this.totalUsers = users.length;
-
         this.isLoadingUsers = false;
+        this.cdr.markForCheck();
       },
-
       error: (error) => {
-
-        console.error(
-          'Protected user API request failed'
-        );
-
-        console.error(
-          'Status:',
-          error.status
-        );
-
-        console.error(
-          'Response:',
-          error.error
-        );
-
+        console.error('User API failed:', error.status, error.error);
         this.isLoadingUsers = false;
-
-        if (error.status === 401) {
-
-          this.userLoadError =
-            'Authentication failed. Your session may have expired.';
-
-        } else if (error.status === 403) {
-
-          this.userLoadError =
-            'Access denied. ADMIN permission is required.';
-
-        } else if (error.status === 0) {
-
-          this.userLoadError =
-            'Cannot connect to the backend.';
-
-        } else {
-
-          this.userLoadError =
-            'Unable to load users.';
-        }
+        this.userLoadError = this.describeError(
+          error,
+          'Access denied. ADMIN permission is required.',
+          'Unable to load users.'
+        );
+        this.cdr.markForCheck();
       }
     });
   }
 
-  /*
-   * ============================
-   * INCIDENT MANAGEMENT
-   * ============================
-   */
-
   private loadIncidents(): void {
-
     this.isLoadingIncidents = true;
     this.incidentLoadError = '';
 
     this.incidentService.getIncidents().subscribe({
-
       next: (incidents) => {
-
-        console.log(
-          'Incident API request successful'
-        );
-
-        console.log(
-          'Incidents received from backend:',
-          incidents
-        );
-
         this.incidents = incidents;
-
-        this.updateActiveIncidentCount();
-
+        this.calculateIncidentMetrics();
+        this.calculateThreatScore();
         this.isLoadingIncidents = false;
+        this.cdr.markForCheck();
       },
-
       error: (error) => {
-
-        console.error(
-          'Incident API request failed'
-        );
-
-        console.error(
-          'Status:',
-          error.status
-        );
-
-        console.error(
-          'Response:',
-          error.error
-        );
-
+        console.error('Incident API failed:', error.status, error.error);
         this.isLoadingIncidents = false;
-
-        if (error.status === 401) {
-
-          this.incidentLoadError =
-            'Authentication failed. Your session may have expired.';
-
-        } else if (error.status === 403) {
-
-          this.incidentLoadError =
-            'Access denied. Your role cannot view all incidents.';
-
-        } else if (error.status === 0) {
-
-          this.incidentLoadError =
-            'Cannot connect to the backend.';
-
-        } else {
-
-          this.incidentLoadError =
-            'Unable to load incidents.';
-        }
+        this.incidentLoadError = this.describeError(
+          error,
+          'Access denied. Your role cannot view all incidents.',
+          'Unable to load incidents.'
+        );
+        this.cdr.markForCheck();
       }
     });
   }
 
-  private updateActiveIncidentCount(): void {
-
+  private calculateIncidentMetrics(): void {
     this.activeIncidents =
       this.incidents.filter(
-        (incident) =>
-          incident.status !== 'CLOSED' &&
-          incident.status !== 'RESOLVED'
+        (incident) => !this.isClosedOrResolved(incident)
       ).length;
 
-    console.log(
-      'Dashboard: Active incidents:',
-      this.activeIncidents
-    );
+    this.criticalAlerts =
+      this.incidents.filter(
+        (incident) =>
+          this.normalizeSeverity(incident.severity) === 'CRITICAL' &&
+          !this.isClosedOrResolved(incident)
+      ).length;
   }
 
-  /*
-   * ============================
-   * DYNAMIC DASHBOARD
-   * ============================
-   */
+  private isClosedOrResolved(incident: Incident): boolean {
+    const status =
+      String(incident.status ?? '').toUpperCase();
 
-  private updateDashboard(): void {
-
-    this.currentTime = new Date();
-
-    /*
-     * Active incidents now come from
-     * the backend instead of random data.
-     */
-
-    this.criticalAlerts = Math.max(
-      0,
-      this.criticalAlerts +
-      this.randomChange(-1, 1)
-    );
-
-    this.auditEvents +=
-      this.randomChange(1, 3);
-
-    this.threatScore = Math.max(
-      10,
-      Math.min(
-        90,
-        this.threatScore +
-        this.randomChange(-4, 4)
-      )
-    );
-
-    this.chartValues =
-      this.chartValues.map(() =>
-        this.randomNumber(25, 95)
-      );
-
-    this.addSecurityEvent();
+    return status === 'CLOSED' || status === 'RESOLVED';
   }
 
-  private addSecurityEvent(): void {
+  private normalizeSeverity(severity: string | undefined): string {
+    return String(severity ?? '').toUpperCase();
+  }
 
-    const events: SecurityEvent[] = [
+  private startAuditLogPolling(): void {
+    this.auditRefreshSubscription =
+      timer(0, 5000)
+        .pipe(
+          tap(() => {
+            if (this.auditLogs.length === 0) {
+              this.isLoadingAuditLogs = true;
+              this.cdr.markForCheck();
+            }
+          }),
+          switchMap(() =>
+            this.auditLogService.getLogs().pipe(
+              catchError((error) => {
+                console.error(
+                  'Audit API failed:',
+                  error.status,
+                  error.error
+                );
 
-      {
-        time: 'Just now',
-        type: 'LOGIN_SUCCESS',
-        source: 'admin@example.com',
-        severity: 'LOW'
-      },
+                this.isLoadingAuditLogs = false;
 
-      {
-        time: 'Just now',
-        type: 'LOGIN_FAILURE',
-        source: 'unknown',
-        severity: 'MEDIUM'
-      },
+                this.auditLogLoadError = this.describeError(
+                  error,
+                  'Access denied. ADMIN or SECURITY_ANALYST permission is required.',
+                  'Unable to load audit logs.'
+                );
 
-      {
-        time: 'Just now',
-        type: 'PORT_SCAN_DETECTED',
-        source: '192.168.50.30',
-        severity: 'HIGH'
-      },
+                this.cdr.markForCheck();
 
-      {
-        time: 'Just now',
-        type: 'SUSPICIOUS_ACTIVITY',
-        source: '192.168.50.20',
-        severity: 'HIGH'
-      },
-
-      {
-        time: 'Just now',
-        type: 'INCIDENT_CREATED',
-        source: 'SOC Analyst',
-        severity: 'HIGH'
-      }
-    ];
-
-    const randomEvent =
-      events[
-        Math.floor(
-          Math.random() * events.length
+                return EMPTY;
+              })
+            )
+          )
         )
-      ];
+        .subscribe((logs) => this.applyAuditLogs(logs));
+  }
 
-    this.securityEvents.unshift(
-      randomEvent
+  private applyAuditLogs(logs: AuditLog[]): void {
+    const sorted = [...logs].sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() -
+        new Date(a.timestamp).getTime()
     );
 
-    if (this.securityEvents.length > 6) {
-      this.securityEvents.pop();
+    this.auditLogs = sorted;
+    this.auditEvents = sorted.length;
+    this.recentAuditLogs = sorted.slice(0, 6);
+
+    this.refreshSecurityEvents();
+    this.calculateThreatScore();
+    this.calculateActivityChart();
+
+    this.isLoadingAuditLogs = false;
+    this.auditLogLoadError = '';
+
+    this.cdr.markForCheck();
+  }
+
+  private refreshSecurityEvents(): void {
+    this.securityEvents =
+      this.recentAuditLogs.map((log) => ({
+        time: this.getRelativeTime(log.timestamp),
+        type: this.formatAuditAction(log.action),
+        source: log.actor || 'SYSTEM',
+        severity: this.getAuditSeverity(log.action)
+      }));
+  }
+
+  private formatAuditAction(action: string): string {
+    switch (action) {
+      case 'CREATE':
+        return 'INCIDENT_CREATED';
+      case 'ASSIGN':
+        return 'INCIDENT_ASSIGNED';
+      case 'STATUS_CHANGE':
+        return 'INCIDENT_STATUS_CHANGED';
+      default:
+        return action;
     }
   }
 
-  private randomNumber(
-    min: number,
-    max: number
-  ): number {
-
-    return Math.floor(
-      Math.random() *
-      (max - min + 1)
-    ) + min;
+  private getAuditSeverity(action: string): Severity {
+    switch (action) {
+      case 'CREATE':
+        return 'HIGH';
+      case 'LOGIN_FAILURE':
+      case 'PASSWORD_RESET_REQUEST':
+      case 'STATUS_CHANGE':
+        return 'MEDIUM';
+      default:
+        return 'LOW';
+    }
   }
 
-  private randomChange(
-    min: number,
-    max: number
-  ): number {
+  private getRelativeTime(timestamp: string): string {
+    const time = new Date(timestamp).getTime();
 
-    return this.randomNumber(min, max);
+    if (Number.isNaN(time)) {
+      return 'Unknown';
+    }
+
+    const seconds =
+      Math.floor(
+        Math.max(0, Date.now() - time) / 1000
+      );
+
+    if (seconds < 60) return 'Just now';
+
+    const minutes = Math.floor(seconds / 60);
+
+    if (minutes < 60) {
+      return `${minutes} min ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+
+    if (hours < 24) {
+      return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+
+    const days = Math.floor(hours / 24);
+
+    return `${days} day${days === 1 ? '' : 's'} ago`;
   }
 
-  /*
-   * ============================
-   * THREAT SCORE
-   * ============================
+  /**
+   * Calculated dashboard risk indicator.
+   *
+   * Active incident weights:
+   * CRITICAL = 25
+   * HIGH     = 15
+   * MEDIUM   = 8
+   * LOW      = 2
+   *
+   * Recent login failures add 2 points each.
+   * Final score is capped at 100.
    */
+  private calculateThreatScore(): void {
+    let score = 0;
+
+    for (const incident of this.incidents) {
+      if (this.isClosedOrResolved(incident)) {
+        continue;
+      }
+
+      switch (this.normalizeSeverity(incident.severity)) {
+        case 'CRITICAL':
+          score += 25;
+          break;
+        case 'HIGH':
+          score += 15;
+          break;
+        case 'MEDIUM':
+          score += 8;
+          break;
+        case 'LOW':
+          score += 2;
+          break;
+      }
+    }
+
+    const recentWindow =
+      Date.now() - 60 * 60 * 1000;
+
+    const recentLoginFailures =
+      this.auditLogs.filter((log) => {
+        const timestamp =
+          new Date(log.timestamp).getTime();
+
+        return (
+          log.action === 'LOGIN_FAILURE' &&
+          timestamp >= recentWindow
+        );
+      }).length;
+
+    score += recentLoginFailures * 2;
+
+    this.threatScore =
+      Math.min(100, score);
+  }
+
+  /**
+   * Builds the last 12 five-minute activity intervals
+   * from real audit events.
+   *
+   * Values are normalized for the existing chart UI.
+   */
+  private calculateActivityChart(): void {
+    const now = Date.now();
+    const bucketSize = 5 * 60 * 1000;
+
+    const counts = Array(12).fill(0) as number[];
+
+    for (const log of this.auditLogs) {
+      const timestamp =
+        new Date(log.timestamp).getTime();
+
+      if (Number.isNaN(timestamp)) {
+        continue;
+      }
+
+      const age = now - timestamp;
+
+      if (age < 0 || age >= bucketSize * 12) {
+        continue;
+      }
+
+      const bucket =
+        Math.floor(age / bucketSize);
+
+      const index = 11 - bucket;
+
+      if (index >= 0 && index < 12) {
+        counts[index]++;
+      }
+    }
+
+    const max =
+      Math.max(...counts, 1);
+
+    this.chartValues =
+      counts.map((count) => {
+        if (count === 0) {
+          return 10;
+        }
+
+        return Math.max(
+          10,
+          Math.round((count / max) * 100)
+        );
+      });
+  }
 
   getThreatLabel(): string {
-
     if (this.threatScore >= 70) {
       return 'HIGH';
     }
@@ -462,7 +490,6 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   getThreatClass(): string {
-
     if (this.threatScore >= 70) {
       return 'critical';
     }
@@ -474,16 +501,8 @@ export class Dashboard implements OnInit, OnDestroy {
     return 'safe';
   }
 
-  /*
-   * ============================
-   * LOGOUT
-   * ============================
-   */
-
   logout(): void {
-
     this.authService.logout();
-
     this.router.navigate(['/login']);
   }
 }
