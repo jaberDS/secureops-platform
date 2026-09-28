@@ -6,6 +6,7 @@ import com.secureops.backend.entity.User;
 import com.secureops.backend.repository.AuditLogRepository;
 import com.secureops.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -71,6 +72,7 @@ public class AuditLogService {
         return auditLogRepository.save(auditLog);
     }
 
+    @Transactional(readOnly = true)
     public List<AuditLogResponse> getAllLogs() {
 
         return auditLogRepository.findAll()
@@ -79,31 +81,40 @@ public class AuditLogService {
                 .toList();
     }
 
-    public List<AuditLogResponse> getLogsByAction(String action) {
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> getLogsByAction(
+            String action) {
 
-        return auditLogRepository.findByAction(action)
+        return auditLogRepository
+                .findByAction(action)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AuditLogResponse> getLogsByResourceType(
             String resourceType) {
 
-        return auditLogRepository.findByResourceType(resourceType)
+        return auditLogRepository
+                .findByResourceType(resourceType)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public List<AuditLogResponse> getLogsByActor(String actor) {
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> getLogsByActor(
+            String actor) {
 
-        return auditLogRepository.findByUser_Email(actor)
+        return auditLogRepository
+                .findByUser_Email(actor)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AuditLogResponse> getLogsByResourceTypeAndAction(
             String resourceType,
             String action) {
@@ -118,12 +129,14 @@ public class AuditLogService {
                 .toList();
     }
 
-    private AuditLogResponse toResponse(AuditLog auditLog) {
+    private AuditLogResponse toResponse(
+            AuditLog auditLog) {
 
         String actor = null;
 
         if (auditLog.getUser() != null) {
-            actor = auditLog.getUser().getEmail();
+            actor =
+                    auditLog.getUser().getEmail();
         }
 
         return new AuditLogResponse(
