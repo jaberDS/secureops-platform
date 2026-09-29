@@ -1,7 +1,7 @@
 package com.secureops.backend.controller;
 
 import com.secureops.backend.dto.CreateInvestigationNoteRequest;
-import com.secureops.backend.entity.InvestigationNote;
+import com.secureops.backend.dto.InvestigationNoteResponse;
 import com.secureops.backend.service.InvestigationNoteService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
@@ -22,19 +22,22 @@ public class InvestigationNoteController {
     }
 
     @GetMapping
-    public List<InvestigationNote> getNotes(
+    public List<InvestigationNoteResponse> getNotes(
             @PathVariable Long incidentId) {
 
-        return noteService.getNotesByIncident(incidentId);
+        return noteService.getNotesByIncident(
+                incidentId
+        );
     }
 
     @PostMapping
-    public InvestigationNote createNote(
+    public InvestigationNoteResponse createNote(
             @PathVariable Long incidentId,
             @Valid @RequestBody CreateInvestigationNoteRequest request,
             Authentication authentication) {
 
-        String analystEmail = authentication.getName();
+        String analystEmail =
+                authentication.getName();
 
         return noteService.createNote(
                 incidentId,

@@ -39,6 +39,7 @@ public class IncidentService {
                 .toList();
     }
 
+    @Transactional
     public IncidentResponse createIncident(
             Incident incident,
             String reporterEmail) {
@@ -66,6 +67,7 @@ public class IncidentService {
         return toResponse(savedIncident);
     }
 
+    @Transactional
     public IncidentResponse assignIncident(
             Long incidentId,
             AssignIncidentRequest request,
@@ -112,6 +114,7 @@ public class IncidentService {
         return toResponse(savedIncident);
     }
 
+    @Transactional
     public IncidentResponse updateStatus(
             Long incidentId,
             IncidentStatus newStatus,

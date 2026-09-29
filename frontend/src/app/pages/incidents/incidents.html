@@ -1,0 +1,901 @@
+﻿<div class="incidents-page">
+
+  <header class="page-header">
+
+    <div>
+
+      <button
+        class="back-button"
+        type="button"
+        (click)="goToDashboard()"
+      >
+        ← Dashboard
+      </button>
+
+      <h1>Incident Investigation</h1>
+
+      <p>
+        Review and investigate security incidents detected by SecureOps.
+      </p>
+
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadIncidents()"
+      [disabled]="isLoading"
+    >
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+
+  </header>
+
+  @if (isLoading && incidents.length === 0) {
+
+    <section class="state-card">
+
+      <div class="loading-spinner"></div>
+
+      <p>
+        Loading incidents...
+      </p>
+
+    </section>
+
+  }
+
+  @if (loadError) {
+
+    <section class="state-card error-card">
+
+      <div class="error-icon">
+        !
+      </div>
+
+      <h2>
+        Unable to load incidents
+      </h2>
+
+      <p>
+        {{ loadError }}
+      </p>
+
+      <button
+        class="retry-button"
+        type="button"
+        (click)="loadIncidents()"
+      >
+        Try Again
+      </button>
+
+    </section>
+
+  }
+
+  @if (!isLoading && !loadError && incidents.length === 0) {
+
+    <section class="state-card">
+
+      <div class="empty-icon">
+        ○
+      </div>
+
+      <h2>
+        No Incidents
+      </h2>
+
+      <p>
+        No security incidents have been recorded yet.
+      </p>
+
+    </section>
+
+  }
+
+  @if (incidents.length > 0) {
+
+    <section class="summary-grid">
+
+      <div class="summary-card">
+
+        <span class="summary-label">
+          TOTAL INCIDENTS
+        </span>
+
+        <strong>
+          {{ incidents.length }}
+        </strong>
+
+      </div>
+
+      <div class="summary-card">
+
+        <span class="summary-label">
+          OPEN
+        </span>
+
+        <strong>
+          {{
+            incidents.filter(
+              incident => incident.status?.toUpperCase() === 'OPEN'
+            ).length
+          }}
+        </strong>
+
+      </div>
+
+      <div class="summary-card">
+
+        <span class="summary-label">
+          CRITICAL
+        </span>
+
+        <strong>
+          {{
+            incidents.filter(
+              incident => incident.severity?.toUpperCase() === 'CRITICAL'
+            ).length
+          }}
+        </strong>
+
+      </div>
+
+    </section>
+
+    <section class="incidents-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>
+            Security Incidents
+          </h2>
+
+          <p>
+            Select an incident to begin investigation.
+          </p>
+
+        </div>
+
+        <div class="incident-filters">
+
+          <div class="filter-group filter-search-group">
+
+            <label
+              class="filter-label"
+              for="incident-search"
+            >
+              SEARCH
+            </label>
+
+            <input
+              id="incident-search"
+              class="filter-search"
+              type="text"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="applyFilters()"
+              placeholder="Search incidents..."
+            />
+
+          </div>
+
+          <div class="filter-group">
+
+            <label
+              class="filter-label"
+              for="severity-filter"
+            >
+              SEVERITY
+            </label>
+
+            <select
+              id="severity-filter"
+              class="filter-select"
+              [(ngModel)]="severityFilter"
+              (ngModelChange)="applyFilters()"
+            >
+
+              <option value="">
+                All Severities
+              </option>
+
+              <option value="CRITICAL">
+                Critical
+              </option>
+
+              <option value="HIGH">
+                High
+              </option>
+
+              <option value="MEDIUM">
+                Medium
+              </option>
+
+              <option value="LOW">
+                Low
+              </option>
+
+            </select>
+
+          </div>
+
+          <div class="filter-group">
+
+            <label
+              class="filter-label"
+              for="status-filter"
+            >
+              STATUS
+            </label>
+
+            <select
+              id="status-filter"
+              class="filter-select"
+              [(ngModel)]="statusFilter"
+              (ngModelChange)="applyFilters()"
+            >
+
+              <option value="">
+                All Statuses
+              </option>
+
+              <option value="OPEN">
+                Open
+              </option>
+
+              <option value="ASSIGNED">
+                Assigned
+              </option>
+
+              <option value="INVESTIGATING">
+                Investigating
+              </option>
+
+              <option value="CONTAINED">
+                Contained
+              </option>
+
+              <option value="RESOLVED">
+                Resolved
+              </option>
+
+              <option value="CLOSED">
+                Closed
+              </option>
+
+            </select>
+
+          </div>
+
+          <button
+            class="filter-clear"
+            type="button"
+            (click)="clearFilters()"
+            [disabled]="
+              !searchTerm &&
+              !severityFilter &&
+              !statusFilter
+            "
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+        <div class="filter-results">
+
+          Showing
+          <strong>
+            {{ filteredIncidents.length }}
+          </strong>
+          of
+          <strong>
+            {{ incidents.length }}
+          </strong>
+          incidents
+
+        </div>
+
+      </div>
+
+      @if (filteredIncidents.length > 0) {
+
+        <div class="table-container">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Reported By</th>
+                <th>Assigned To</th>
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              @for (incident of filteredIncidents; track incident.id) {
+
+                <tr
+                  class="incident-row"
+                  [class.selected-row]="selectedIncident?.id === incident.id"
+                  (click)="selectIncident(incident)"
+                >
+
+                  <td class="incident-id">
+                    #{{ incident.id }}
+                  </td>
+
+                  <td>
+
+                    <div class="incident-title">
+
+                      <strong>
+                        {{ incident.title }}
+                      </strong>
+
+                      <span>
+                        {{ incident.description }}
+                      </span>
+
+                    </div>
+
+                  </td>
+
+                  <td>
+
+                    <span class="category">
+                      {{ incident.category }}
+                    </span>
+
+                  </td>
+
+                  <td>
+
+                    <span
+                      class="severity-badge"
+                      [class]="getSeverityClass(incident.severity)"
+                    >
+                      {{ incident.severity }}
+                    </span>
+
+                  </td>
+
+                  <td>
+
+                    <span
+                      class="status-badge"
+                      [class]="getStatusClass(incident.status)"
+                    >
+                      {{ incident.status }}
+                    </span>
+
+                  </td>
+
+                  <td>
+
+                    <span class="user-email">
+                      {{ incident.reportedBy?.email || 'Unknown' }}
+                    </span>
+
+                  </td>
+
+                  <td>
+
+                    <span class="user-email">
+                      {{ incident.assignedTo?.email || 'Unassigned' }}
+                    </span>
+
+                  </td>
+
+                </tr>
+
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      } @else {
+
+        <div class="filtered-empty">
+
+          <div class="empty-icon">
+            ○
+          </div>
+
+          <h3>
+            No Matching Incidents
+          </h3>
+
+          <p>
+            No incidents match the current search and filters.
+          </p>
+
+          <button
+            class="retry-button"
+            type="button"
+            (click)="clearFilters()"
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+      }
+
+    </section>
+
+    @if (selectedIncident) {
+
+      <section class="investigation-card">
+
+        <div class="investigation-header">
+
+          <div>
+
+            <span class="panel-kicker">
+              INCIDENT INVESTIGATION
+            </span>
+
+            <h2>
+              {{ selectedIncident.title }}
+            </h2>
+
+            <p>
+              Investigation details for incident #{{ selectedIncident.id }}
+            </p>
+
+          </div>
+
+          <button
+            class="close-button"
+            type="button"
+            (click)="clearSelectedIncident()"
+          >
+            Close
+          </button>
+
+        </div>
+
+        <div class="investigation-grid">
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              INCIDENT ID
+            </span>
+
+            <strong>
+              #{{ selectedIncident.id }}
+            </strong>
+
+          </div>
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              CATEGORY
+            </span>
+
+            <strong>
+              {{ selectedIncident.category }}
+            </strong>
+
+          </div>
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              SEVERITY
+            </span>
+
+            <span
+              class="severity-badge"
+              [class]="getSeverityClass(selectedIncident.severity)"
+            >
+              {{ selectedIncident.severity }}
+            </span>
+
+          </div>
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              STATUS
+            </span>
+
+            <span
+              class="status-badge"
+              [class]="getStatusClass(selectedIncident.status)"
+            >
+              {{ selectedIncident.status }}
+            </span>
+
+          </div>
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              REPORTED BY
+            </span>
+
+            <strong>
+              {{ selectedIncident.reportedBy?.email || 'Unknown' }}
+            </strong>
+
+          </div>
+
+          <div class="detail-item">
+
+            <span class="detail-label">
+              ASSIGNED TO
+            </span>
+
+            <strong>
+              {{ selectedIncident.assignedTo?.email || 'Unassigned' }}
+            </strong>
+
+          </div>
+
+        </div>
+
+        <div class="description-section">
+
+          <span class="detail-label">
+            DESCRIPTION
+          </span>
+
+          <p>
+            {{ selectedIncident.description || 'No description available.' }}
+          </p>
+
+        </div>
+
+        <div class="investigation-actions">
+
+          <div class="action-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                INCIDENT ACTIONS
+              </span>
+
+              <h3>
+                Investigation Controls
+              </h3>
+
+              <p>
+                Perform the next authorized action on this incident.
+              </p>
+
+            </div>
+
+          </div>
+
+          @if (actionSuccess) {
+
+            <div class="action-message success-message">
+              {{ actionSuccess }}
+            </div>
+
+          }
+
+          @if (actionError) {
+
+            <div class="action-message error-message">
+              {{ actionError }}
+            </div>
+
+          }
+
+          <div class="action-grid">
+
+            <div class="action-box">
+
+              <span class="detail-label">
+                NEXT STATUS
+              </span>
+
+              @if (selectedStatus) {
+
+                <select
+                  class="action-select"
+                  [(ngModel)]="selectedStatus"
+                  [disabled]="isUpdatingStatus"
+                >
+
+                  <option
+                    [value]="selectedStatus"
+                  >
+                    {{ selectedStatus }}
+                  </option>
+
+                </select>
+
+                <p class="action-help">
+
+                  Current status:
+
+                  <strong>
+                    {{ selectedIncident.status }}
+                  </strong>
+
+                </p>
+
+                <button
+                  class="action-button"
+                  type="button"
+                  (click)="updateIncidentStatus()"
+                  [disabled]="isUpdatingStatus"
+                >
+                  {{
+                    isUpdatingStatus
+                      ? 'Updating...'
+                      : getStatusActionLabel(selectedIncident.status)
+                  }}
+                </button>
+
+              } @else {
+
+                <p class="action-help">
+                  This incident is closed. No further status transition is available.
+                </p>
+
+              }
+
+            </div>
+
+            <div class="action-box">
+
+              <span class="detail-label">
+                ASSIGN SECURITY ANALYST
+              </span>
+
+              @if (isLoadingAnalysts) {
+
+                <p class="action-help">
+                  Loading security analysts...
+                </p>
+
+              } @else if (analystsError) {
+
+                <p class="action-help action-error-text">
+                  {{ analystsError }}
+                </p>
+
+                <button
+                  class="retry-button"
+                  type="button"
+                  (click)="loadAnalysts()"
+                >
+                  Retry
+                </button>
+
+              } @else {
+
+                <select
+                  class="action-select"
+                  [(ngModel)]="selectedAnalystEmail"
+                  [disabled]="isAssigning"
+                >
+
+                  <option value="">
+                    Select security analyst
+                  </option>
+
+                  @for (analyst of analysts; track analyst.id) {
+
+                    <option
+                      [value]="analyst.email"
+                    >
+                      {{ analyst.email }}
+                    </option>
+
+                  }
+
+                </select>
+
+                <p class="action-help">
+
+                  Current:
+
+                  <strong>
+                    {{ selectedIncident.assignedTo?.email || 'Unassigned' }}
+                  </strong>
+
+                </p>
+
+                <button
+                  class="action-button"
+                  type="button"
+                  (click)="assignIncident()"
+                  [disabled]="isAssigning || !selectedAnalystEmail"
+                >
+                  {{
+                    isAssigning
+                      ? 'Assigning...'
+                      : 'Assign Analyst'
+                  }}
+                </button>
+
+              }
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="investigation-notes">
+
+          <div class="notes-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                INVESTIGATION NOTES
+              </span>
+
+              <h3>
+                Analyst Notes
+              </h3>
+
+              <p>
+                Record observations, findings, and investigation actions.
+              </p>
+
+            </div>
+
+          </div>
+
+          @if (notesError) {
+
+            <div class="action-message error-message">
+              {{ notesError }}
+            </div>
+
+          }
+
+          @if (isLoadingNotes) {
+
+            <div class="notes-loading">
+
+              <div class="loading-spinner"></div>
+
+              <p>
+                Loading investigation notes...
+              </p>
+
+            </div>
+
+          } @else if (!notesError && investigationNotes.length === 0) {
+
+            <div class="notes-empty">
+
+              <strong>
+                No investigation notes yet.
+              </strong>
+
+              <p>
+                Add the first note for this incident.
+              </p>
+
+            </div>
+
+          } @else if (!notesError) {
+
+            <div class="notes-list">
+
+              @for (
+                note of investigationNotes;
+                track note.id
+              ) {
+
+                <div class="note-item">
+
+                  <div class="note-header">
+
+                    <strong>
+                      {{ note.createdByEmail || 'Unknown user' }}
+                    </strong>
+
+                    <span>
+                      Note #{{ note.id }}
+                    </span>
+
+                  </div>
+
+                  <p>
+                    {{ note.content }}
+                  </p>
+
+                </div>
+
+              }
+
+            </div>
+
+          }
+
+          <div class="note-form">
+
+            <span class="detail-label">
+              ADD INVESTIGATION NOTE
+            </span>
+
+            <textarea
+              class="note-textarea"
+              [(ngModel)]="newNoteContent"
+              placeholder="Write an investigation note..."
+              maxlength="5000"
+              [disabled]="isCreatingNote"
+              rows="5"
+            ></textarea>
+
+            <div class="note-form-footer">
+
+              <span class="note-character-count">
+                {{ newNoteContent.length }} / 5000
+              </span>
+
+              <button
+                class="action-button"
+                type="button"
+                (click)="createInvestigationNote()"
+                [disabled]="
+                  isCreatingNote ||
+                  !newNoteContent.trim()
+                "
+              >
+                {{
+                  isCreatingNote
+                    ? 'Adding Note...'
+                    : 'Add Note'
+                }}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="investigation-status">
+
+          <div>
+
+            <span class="detail-label">
+              INVESTIGATION STATE
+            </span>
+
+            <strong>
+              Ready for investigation
+            </strong>
+
+          </div>
+
+          <span class="investigation-badge">
+            ACTIVE CASE
+          </span>
+
+        </div>
+
+      </section>
+
+    }
+
+  }
+
+</div>

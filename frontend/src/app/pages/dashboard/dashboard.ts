@@ -43,7 +43,10 @@ export class Dashboard implements OnInit, OnDestroy {
   threatScore = 0;
   systemStatus = 'OPERATIONAL';
 
-  chartValues = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10];
+  chartValues = [
+    10, 10, 10, 10, 10, 10,
+    10, 10, 10, 10, 10, 10
+  ];
 
   users: User[] = [];
   incidents: Incident[] = [];
@@ -63,6 +66,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
   private dashboardSubscription?: Subscription;
   private auditRefreshSubscription?: Subscription;
+
+  currentUserRole: Role | null = null;
 
   constructor(
     private authService: AuthService,
@@ -107,8 +112,6 @@ export class Dashboard implements OnInit, OnDestroy {
     this.auditRefreshSubscription?.unsubscribe();
   }
 
-  currentUserRole: Role | null = null;
-
   private normalize(role: unknown): string {
     return String(role ?? '')
       .toUpperCase()
@@ -143,6 +146,7 @@ export class Dashboard implements OnInit, OnDestroy {
     if (this.isManager()) return 'Manager';
     if (this.isSecurityAnalyst()) return 'Security Analyst';
     if (this.isEmployee()) return 'Employee';
+
     return 'Unknown Role';
   }
 
@@ -150,6 +154,7 @@ export class Dashboard implements OnInit, OnDestroy {
     if (this.isAdmin()) return 'A';
     if (this.isManager()) return 'M';
     if (this.isSecurityAnalyst()) return 'S';
+
     return 'E';
   }
 
@@ -161,10 +166,13 @@ export class Dashboard implements OnInit, OnDestroy {
     switch (error?.status) {
       case 401:
         return 'Authentication failed. Your session may have expired.';
+
       case 403:
         return forbiddenMessage;
+
       case 0:
         return 'Cannot connect to the backend.';
+
       default:
         return fallback;
     }
@@ -179,16 +187,25 @@ export class Dashboard implements OnInit, OnDestroy {
         this.users = users;
         this.totalUsers = users.length;
         this.isLoadingUsers = false;
+
         this.cdr.markForCheck();
       },
+
       error: (error) => {
-        console.error('User API failed:', error.status, error.error);
+        console.error(
+          'User API failed:',
+          error.status,
+          error.error
+        );
+
         this.isLoadingUsers = false;
+
         this.userLoadError = this.describeError(
           error,
           'Access denied. ADMIN permission is required.',
           'Unable to load users.'
         );
+
         this.cdr.markForCheck();
       }
     });
@@ -201,19 +218,30 @@ export class Dashboard implements OnInit, OnDestroy {
     this.incidentService.getIncidents().subscribe({
       next: (incidents) => {
         this.incidents = incidents;
+
         this.calculateIncidentMetrics();
         this.calculateThreatScore();
+
         this.isLoadingIncidents = false;
+
         this.cdr.markForCheck();
       },
+
       error: (error) => {
-        console.error('Incident API failed:', error.status, error.error);
+        console.error(
+          'Incident API failed:',
+          error.status,
+          error.error
+        );
+
         this.isLoadingIncidents = false;
+
         this.incidentLoadError = this.describeError(
           error,
           'Access denied. Your role cannot view all incidents.',
           'Unable to load incidents.'
         );
+
         this.cdr.markForCheck();
       }
     });
@@ -222,7 +250,8 @@ export class Dashboard implements OnInit, OnDestroy {
   private calculateIncidentMetrics(): void {
     this.activeIncidents =
       this.incidents.filter(
-        (incident) => !this.isClosedOrResolved(incident)
+        (incident) =>
+          !this.isClosedOrResolved(incident)
       ).length;
 
     this.criticalAlerts =
@@ -233,14 +262,21 @@ export class Dashboard implements OnInit, OnDestroy {
       ).length;
   }
 
-  private isClosedOrResolved(incident: Incident): boolean {
+  private isClosedOrResolved(
+    incident: Incident
+  ): boolean {
     const status =
       String(incident.status ?? '').toUpperCase();
 
-    return status === 'CLOSED' || status === 'RESOLVED';
+    return (
+      status === 'CLOSED' ||
+      status === 'RESOLVED'
+    );
   }
 
-  private normalizeSeverity(severity: string | undefined): string {
+  private normalizeSeverity(
+    severity: string | undefined
+  ): string {
     return String(severity ?? '').toUpperCase();
   }
 
@@ -254,6 +290,7 @@ export class Dashboard implements OnInit, OnDestroy {
               this.cdr.markForCheck();
             }
           }),
+
           switchMap(() =>
             this.auditLogService.getLogs().pipe(
               catchError((error) => {
@@ -265,11 +302,12 @@ export class Dashboard implements OnInit, OnDestroy {
 
                 this.isLoadingAuditLogs = false;
 
-                this.auditLogLoadError = this.describeError(
-                  error,
-                  'Access denied. ADMIN or SECURITY_ANALYST permission is required.',
-                  'Unable to load audit logs.'
-                );
+                this.auditLogLoadError =
+                  this.describeError(
+                    error,
+                    'Access denied. ADMIN or SECURITY_ANALYST permission is required.',
+                    'Unable to load audit logs.'
+                  );
 
                 this.cdr.markForCheck();
 
@@ -278,10 +316,14 @@ export class Dashboard implements OnInit, OnDestroy {
             )
           )
         )
-        .subscribe((logs) => this.applyAuditLogs(logs));
+        .subscribe((logs) =>
+          this.applyAuditLogs(logs)
+        );
   }
 
-  private applyAuditLogs(logs: AuditLog[]): void {
+  private applyAuditLogs(
+    logs: AuditLog[]
+  ): void {
     const sorted = [...logs].sort(
       (a, b) =>
         new Date(b.timestamp).getTime() -
@@ -312,33 +354,44 @@ export class Dashboard implements OnInit, OnDestroy {
       }));
   }
 
-  private formatAuditAction(action: string): string {
+  private formatAuditAction(
+    action: string
+  ): string {
     switch (action) {
       case 'CREATE':
         return 'INCIDENT_CREATED';
+
       case 'ASSIGN':
         return 'INCIDENT_ASSIGNED';
+
       case 'STATUS_CHANGE':
         return 'INCIDENT_STATUS_CHANGED';
+
       default:
         return action;
     }
   }
 
-  private getAuditSeverity(action: string): Severity {
+  private getAuditSeverity(
+    action: string
+  ): Severity {
     switch (action) {
       case 'CREATE':
         return 'HIGH';
+
       case 'LOGIN_FAILURE':
       case 'PASSWORD_RESET_REQUEST':
       case 'STATUS_CHANGE':
         return 'MEDIUM';
+
       default:
         return 'LOW';
     }
   }
 
-  private getRelativeTime(timestamp: string): string {
+  private getRelativeTime(
+    timestamp: string
+  ): string {
     const time = new Date(timestamp).getTime();
 
     if (Number.isNaN(time)) {
@@ -347,40 +400,36 @@ export class Dashboard implements OnInit, OnDestroy {
 
     const seconds =
       Math.floor(
-        Math.max(0, Date.now() - time) / 1000
+        Math.max(
+          0,
+          Date.now() - time
+        ) / 1000
       );
 
-    if (seconds < 60) return 'Just now';
+    if (seconds < 60) {
+      return 'Just now';
+    }
 
-    const minutes = Math.floor(seconds / 60);
+    const minutes =
+      Math.floor(seconds / 60);
 
     if (minutes < 60) {
       return `${minutes} min ago`;
     }
 
-    const hours = Math.floor(minutes / 60);
+    const hours =
+      Math.floor(minutes / 60);
 
     if (hours < 24) {
       return `${hours} hour${hours === 1 ? '' : 's'} ago`;
     }
 
-    const days = Math.floor(hours / 24);
+    const days =
+      Math.floor(hours / 24);
 
     return `${days} day${days === 1 ? '' : 's'} ago`;
   }
 
-  /**
-   * Calculated dashboard risk indicator.
-   *
-   * Active incident weights:
-   * CRITICAL = 25
-   * HIGH     = 15
-   * MEDIUM   = 8
-   * LOW      = 2
-   *
-   * Recent login failures add 2 points each.
-   * Final score is capped at 100.
-   */
   private calculateThreatScore(): void {
     let score = 0;
 
@@ -389,16 +438,23 @@ export class Dashboard implements OnInit, OnDestroy {
         continue;
       }
 
-      switch (this.normalizeSeverity(incident.severity)) {
+      switch (
+        this.normalizeSeverity(
+          incident.severity
+        )
+      ) {
         case 'CRITICAL':
           score += 25;
           break;
+
         case 'HIGH':
           score += 15;
           break;
+
         case 'MEDIUM':
           score += 8;
           break;
+
         case 'LOW':
           score += 2;
           break;
@@ -406,7 +462,8 @@ export class Dashboard implements OnInit, OnDestroy {
     }
 
     const recentWindow =
-      Date.now() - 60 * 60 * 1000;
+      Date.now() -
+      60 * 60 * 1000;
 
     const recentLoginFailures =
       this.auditLogs.filter((log) => {
@@ -419,23 +476,20 @@ export class Dashboard implements OnInit, OnDestroy {
         );
       }).length;
 
-    score += recentLoginFailures * 2;
+    score +=
+      recentLoginFailures * 2;
 
     this.threatScore =
       Math.min(100, score);
   }
 
-  /**
-   * Builds the last 12 five-minute activity intervals
-   * from real audit events.
-   *
-   * Values are normalized for the existing chart UI.
-   */
   private calculateActivityChart(): void {
     const now = Date.now();
-    const bucketSize = 5 * 60 * 1000;
+    const bucketSize =
+      5 * 60 * 1000;
 
-    const counts = Array(12).fill(0) as number[];
+    const counts =
+      Array(12).fill(0) as number[];
 
     for (const log of this.auditLogs) {
       const timestamp =
@@ -445,18 +499,28 @@ export class Dashboard implements OnInit, OnDestroy {
         continue;
       }
 
-      const age = now - timestamp;
+      const age =
+        now - timestamp;
 
-      if (age < 0 || age >= bucketSize * 12) {
+      if (
+        age < 0 ||
+        age >= bucketSize * 12
+      ) {
         continue;
       }
 
       const bucket =
-        Math.floor(age / bucketSize);
+        Math.floor(
+          age / bucketSize
+        );
 
-      const index = 11 - bucket;
+      const index =
+        11 - bucket;
 
-      if (index >= 0 && index < 12) {
+      if (
+        index >= 0 &&
+        index < 12
+      ) {
         counts[index]++;
       }
     }
@@ -472,7 +536,9 @@ export class Dashboard implements OnInit, OnDestroy {
 
         return Math.max(
           10,
-          Math.round((count / max) * 100)
+          Math.round(
+            (count / max) * 100
+          )
         );
       });
   }
@@ -501,8 +567,12 @@ export class Dashboard implements OnInit, OnDestroy {
     return 'safe';
   }
 
-    goToAuditLogs(): void {
-  this.router.navigate(['/audit-logs']);
+  goToAuditLogs(): void {
+    this.router.navigate(['/audit-logs']);
+  }
+
+  goToIncidents(): void {
+    this.router.navigate(['/incidents']);
   }
 
   logout(): void {
