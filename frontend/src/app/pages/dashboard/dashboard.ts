@@ -501,6 +501,10 @@ export class Dashboard implements OnInit, OnDestroy {
     return 'safe';
   }
 
+    goToAuditLogs(): void {
+  this.router.navigate(['/audit-logs']);
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

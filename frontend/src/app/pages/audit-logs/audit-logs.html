@@ -1,0 +1,211 @@
+<div class="audit-page">
+
+  <header class="page-header">
+
+    <div>
+      <button
+        class="back-button"
+        type="button"
+        (click)="goToDashboard()"
+      >
+        ← Dashboard
+      </button>
+
+      <h1>Audit Logs</h1>
+
+      <p>
+        Review security and system activity recorded by SecureOps.
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadAuditLogs()"
+      [disabled]="isLoading"
+    >
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+
+  </header>
+
+
+  @if (isLoading && auditLogs.length === 0) {
+
+    <section class="state-card">
+      <div class="loading-spinner"></div>
+      <p>Loading audit logs...</p>
+    </section>
+
+  }
+
+
+  @if (loadError) {
+
+    <section class="state-card error-card">
+
+      <div class="error-icon">!</div>
+
+      <h2>Unable to load audit logs</h2>
+
+      <p>{{ loadError }}</p>
+
+      <button
+        class="retry-button"
+        type="button"
+        (click)="loadAuditLogs()"
+      >
+        Try Again
+      </button>
+
+    </section>
+
+  }
+
+
+  @if (!isLoading && !loadError && auditLogs.length === 0) {
+
+    <section class="state-card">
+
+      <div class="empty-icon">○</div>
+
+      <h2>No Audit Logs</h2>
+
+      <p>
+        No audit events have been recorded yet.
+      </p>
+
+    </section>
+
+  }
+
+
+  @if (auditLogs.length > 0) {
+
+    <section class="summary-card">
+
+      <div>
+        <span class="summary-label">
+          TOTAL EVENTS
+        </span>
+
+        <strong>
+          {{ auditLogs.length }}
+        </strong>
+      </div>
+
+      <div>
+        <span class="summary-label">
+          LATEST EVENT
+        </span>
+
+        <strong>
+          {{ auditLogs[0].timestamp | date:'medium' }}
+        </strong>
+      </div>
+
+    </section>
+
+
+    <section class="logs-card">
+
+      <div class="logs-header">
+
+        <div>
+          <h2>Security Activity</h2>
+
+          <p>
+            Recorded actions and security events.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="table-container">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>Time</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Resource</th>
+              <th>Details</th>
+            </tr>
+
+          </thead>
+
+
+          <tbody>
+
+            @for (log of auditLogs; track log.id) {
+
+              <tr>
+
+                <td class="timestamp">
+                  {{ log.timestamp | date:'medium' }}
+                </td>
+
+                <td>
+                  <span class="actor">
+                    {{ log.actor || 'SYSTEM' }}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    class="action-badge"
+                    [class.action-danger]="
+                      log.action === 'LOGIN_FAILURE'
+                    "
+                    [class.action-warning]="
+                      log.action === 'PASSWORD_RESET_REQUEST'
+                    "
+                    [class.action-success]="
+                      log.action === 'LOGIN_SUCCESS'
+                    "
+                  >
+                    {{ log.action }}
+                  </span>
+                </td>
+
+                <td>
+
+                  <div class="resource">
+
+                    <span class="resource-type">
+                      {{ log.resourceType }}
+                    </span>
+
+                    @if (log.resourceId) {
+                      <span class="resource-id">
+                        #{{ log.resourceId }}
+                      </span>
+                    }
+
+                  </div>
+
+                </td>
+
+                <td class="details">
+                  {{ log.details || 'No details available' }}
+                </td>
+
+              </tr>
+
+            }
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+  }
+
+</div>
