@@ -1,7 +1,9 @@
 package com.secureops.backend.service;
 
 import com.secureops.backend.dto.AuditLogResponse;
+import com.secureops.backend.dto.SecurityEventRequest;
 import com.secureops.backend.entity.AuditLog;
+import com.secureops.backend.entity.ThreatSeverity;
 import com.secureops.backend.entity.User;
 import com.secureops.backend.repository.AuditLogRepository;
 import com.secureops.backend.repository.UserRepository;
@@ -16,13 +18,16 @@ public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
+    private final ThreatDetectionService threatDetectionService;
 
     public AuditLogService(
             AuditLogRepository auditLogRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ThreatDetectionService threatDetectionService) {
 
         this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
+        this.threatDetectionService = threatDetectionService;
     }
 
     public AuditLog log(
@@ -69,7 +74,50 @@ public class AuditLogService {
         auditLog.setTimestamp(LocalDateTime.now());
         auditLog.setDetails(details);
 
-        return auditLogRepository.save(auditLog);
+        AuditLog savedAuditLog =
+                auditLogRepository.save(auditLog);
+
+        SecurityEventRequest securityEvent =
+                new SecurityEventRequest(
+                        action,
+                        "AUTHENTICATION",
+                        userEmail,
+                        null,
+                        details,
+                        determineSeverity(action)
+                );
+
+        threatDetectionService.processEvent(
+                securityEvent
+        );
+
+        return savedAuditLog;
+    }
+
+    private ThreatSeverity determineSeverity(
+            String action) {
+
+        if (action == null) {
+            return ThreatSeverity.LOW;
+        }
+
+        return switch (action.toUpperCase()) {
+
+            case "LOGIN_FAILURE" ->
+                    ThreatSeverity.MEDIUM;
+
+            case "PASSWORD_RESET_REQUEST" ->
+                    ThreatSeverity.MEDIUM;
+
+            case "LOGIN_SUCCESS" ->
+                    ThreatSeverity.LOW;
+
+            case "PASSWORD_RESET_SUCCESS" ->
+                    ThreatSeverity.LOW;
+
+            default ->
+                    ThreatSeverity.LOW;
+        };
     }
 
     @Transactional(readOnly = true)
@@ -135,8 +183,7 @@ public class AuditLogService {
         String actor = null;
 
         if (auditLog.getUser() != null) {
-            actor =
-                    auditLog.getUser().getEmail();
+            actor = auditLog.getUser().getEmail();
         }
 
         return new AuditLogResponse(
