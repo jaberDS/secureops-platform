@@ -1,11 +1,10 @@
-﻿import {
+import { DatePipe } from '@angular/common';
+import {
   ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit
 } from '@angular/core';
-
-import { DatePipe } from '@angular/common';
 
 import { Router } from '@angular/router';
 
@@ -31,8 +30,8 @@ interface SecurityEvent {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe],
   templateUrl: './dashboard.html',
+  imports: [DatePipe],
   styleUrl: './dashboard.css'
 })
 export class Dashboard implements OnInit, OnDestroy {
@@ -583,8 +582,17 @@ export class Dashboard implements OnInit, OnDestroy {
     this.router.navigate(['/security-events']);
   }
 
+  goToUsers(): void {
+    this.router.navigate(['/users']);
+  }
+
+  goToSettings(): void {
+    this.router.navigate(['/settings']);
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 }
+

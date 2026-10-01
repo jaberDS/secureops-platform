@@ -1,0 +1,352 @@
+﻿<div class="settings-layout">
+
+  <aside class="sidebar">
+
+    <div class="brand">
+
+      <div class="brand-icon">
+        S
+      </div>
+
+      <div>
+        <h1>SecureOps</h1>
+        <span>Security Platform</span>
+      </div>
+
+    </div>
+
+
+    <div class="sidebar-section">
+
+      <span class="section-title">
+        PLATFORM
+      </span>
+
+      <button
+        class="nav-item"
+        type="button"
+        (click)="goToDashboard()"
+      >
+        <span class="nav-icon">■</span>
+        <span>Dashboard</span>
+      </button>
+
+
+      @if (role === 'ADMIN') {
+
+        <button
+          class="nav-item"
+          type="button"
+          (click)="goToUsers()"
+        >
+          <span class="nav-icon">U</span>
+          <span>Users</span>
+        </button>
+
+      }
+
+
+      <button
+        class="nav-item active"
+        type="button"
+      >
+        <span class="nav-icon">⚙</span>
+        <span>Settings</span>
+      </button>
+
+    </div>
+
+
+    <div class="sidebar-bottom">
+
+      <div class="connection-status">
+
+        <span class="status-dot"></span>
+
+        <div>
+          <strong>System Online</strong>
+          <small>Authenticated session</small>
+        </div>
+
+      </div>
+
+
+      <button
+        class="logout-button"
+        type="button"
+        (click)="logout()"
+      >
+        ➜ Logout
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <main class="main-content">
+
+    <header class="topbar">
+
+      <div>
+
+        <span class="topbar-label">
+          PLATFORM CONFIGURATION
+        </span>
+
+        <h2>Settings</h2>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+      <div class="page-header">
+
+        <div>
+
+          <span class="page-kicker">
+            ACCOUNT & SECURITY
+          </span>
+
+          <h3>Settings</h3>
+
+          <p>
+            Review your account and current authenticated session.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="grid">
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <span class="panel-kicker">
+              ACCOUNT
+            </span>
+
+            <h4>
+              Account Information
+            </h4>
+
+          </div>
+
+
+          <div class="information">
+
+            <div class="information-row">
+
+              <span>Email</span>
+
+              <strong>
+                {{ session.email }}
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Role</span>
+
+              <strong>
+                {{ getRoleLabel() }}
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Role Code</span>
+
+              <strong>
+                {{ session.role }}
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Authentication</span>
+
+              <strong class="online">
+                AUTHENTICATED
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <span class="panel-kicker">
+              JWT SESSION
+            </span>
+
+            <h4>
+              Session Information
+            </h4>
+
+          </div>
+
+
+          <div class="information">
+
+            <div class="information-row">
+
+              <span>Issued</span>
+
+              <strong>
+                {{ session.issuedAt }}
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Expires</span>
+
+              <strong>
+                {{ session.expiresAt }}
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Remaining</span>
+
+              <strong>
+                {{ session.remainingMinutes }} minutes
+              </strong>
+
+            </div>
+
+
+            <div class="information-row">
+
+              <span>Storage</span>
+
+              <strong>
+                Browser session token
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="panel security-panel">
+
+          <div class="panel-header">
+
+            <span class="panel-kicker">
+              SECURITY
+            </span>
+
+            <h4>
+              Security Controls
+            </h4>
+
+          </div>
+
+
+          <div class="security-list">
+
+            <div>
+              <span class="security-icon">✓</span>
+
+              <div>
+                <strong>JWT Authentication</strong>
+                <small>
+                  Requests are authenticated through a signed JWT.
+                </small>
+              </div>
+            </div>
+
+
+            <div>
+              <span class="security-icon">✓</span>
+
+              <div>
+                <strong>Role-Based Access Control</strong>
+                <small>
+                  Access is controlled by the user's role.
+                </small>
+              </div>
+            </div>
+
+
+            <div>
+              <span class="security-icon">✓</span>
+
+              <div>
+                <strong>Session Expiration</strong>
+                <small>
+                  Expired JWT sessions are rejected by the backend.
+                </small>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="panel danger-panel">
+
+          <div class="panel-header">
+
+            <span class="panel-kicker">
+              SESSION CONTROL
+            </span>
+
+            <h4>
+              Logout
+            </h4>
+
+          </div>
+
+
+          <p>
+            End the current SecureOps authenticated session on this browser.
+          </p>
+
+
+          <button
+            class="logout-main"
+            type="button"
+            (click)="logout()"
+          >
+            Logout from SecureOps
+          </button>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

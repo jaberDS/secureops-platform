@@ -1,0 +1,479 @@
+﻿<div class="users-layout">
+
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-icon">S</div>
+
+      <div>
+        <h1>SecureOps</h1>
+        <span>Security Platform</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+
+      <span class="section-title">
+        MANAGEMENT
+      </span>
+
+      <button
+        class="nav-item"
+        type="button"
+        (click)="goToDashboard()"
+      >
+        <span class="nav-icon">■</span>
+        <span>Dashboard</span>
+      </button>
+
+      <button
+        class="nav-item active"
+        type="button"
+      >
+        <span class="nav-icon">U</span>
+        <span>Users</span>
+      </button>
+
+      <button
+        class="nav-item"
+        type="button"
+        (click)="goToSettings()"
+      >
+        <span class="nav-icon">⚙</span>
+        <span>Settings</span>
+      </button>
+
+    </div>
+
+    <div class="sidebar-bottom">
+
+      <div class="connection-status">
+
+        <span class="status-dot"></span>
+
+        <div>
+          <strong>System Online</strong>
+          <small>Administration active</small>
+        </div>
+
+      </div>
+
+      <button
+        class="logout-button"
+        type="button"
+        (click)="logout()"
+      >
+        ➜ Logout
+      </button>
+
+    </div>
+
+  </aside>
+
+  <main class="main-content">
+
+    <header class="topbar">
+
+      <div>
+
+        <span class="topbar-label">
+          ACCESS MANAGEMENT
+        </span>
+
+        <h2>User Management</h2>
+
+      </div>
+
+      <button
+        class="refresh-button"
+        type="button"
+        (click)="loadUsers()"
+      >
+        ↻ Refresh
+      </button>
+
+    </header>
+
+    <section class="content">
+
+      <div class="page-header">
+
+        <div>
+
+          <span class="page-kicker">
+            ADMINISTRATION
+          </span>
+
+          <h3>Users</h3>
+
+          <p>
+            Manage SecureOps accounts, roles and account status.
+          </p>
+
+        </div>
+
+        <button
+          class="primary-button"
+          type="button"
+          (click)="showCreateForm = !showCreateForm"
+        >
+          + Create User
+        </button>
+
+      </div>
+
+      @if (successMessage) {
+
+        <div class="success-panel">
+          {{ successMessage }}
+        </div>
+
+      }
+
+      @if (errorMessage) {
+
+        <div class="error-panel">
+
+          <strong>
+            User Management Error
+          </strong>
+
+          <span>
+            {{ errorMessage }}
+          </span>
+
+        </div>
+
+      }
+
+      @if (showCreateForm) {
+
+        <div class="panel create-panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <span class="panel-kicker">
+                NEW ACCOUNT
+              </span>
+
+              <h4>Create User</h4>
+
+            </div>
+
+          </div>
+
+          <div class="form-grid">
+
+            <label>
+
+              <span>Email</span>
+
+              <input
+                type="email"
+                [(ngModel)]="newUser.email"
+                placeholder="user@secureops.local"
+              >
+
+            </label>
+
+            <label>
+
+              <span>Password</span>
+
+              <input
+                type="password"
+                [(ngModel)]="newUser.password"
+                placeholder="Minimum 12 characters"
+              >
+
+            </label>
+
+            <label>
+
+              <span>Role</span>
+
+              <select
+                [(ngModel)]="newUser.role"
+              >
+
+                @for (
+                  role of roles;
+                  track role
+                ) {
+
+                  <option [value]="role">
+                    {{ role }}
+                  </option>
+
+                }
+
+              </select>
+
+            </label>
+
+          </div>
+
+          <div class="form-actions">
+
+            <button
+              class="secondary-button"
+              type="button"
+              (click)="showCreateForm = false"
+            >
+              Cancel
+            </button>
+
+            <button
+              class="primary-button"
+              type="button"
+              [disabled]="isSaving"
+              (click)="createUser()"
+            >
+              {{
+                isSaving
+                  ? 'Creating...'
+                  : 'Create User'
+              }}
+            </button>
+
+          </div>
+
+        </div>
+
+      }
+
+      <div class="stats-grid">
+
+        <div class="stat-card">
+
+          <span>Total Users</span>
+
+          <strong>
+            {{ users.length }}
+          </strong>
+
+        </div>
+
+        <div class="stat-card">
+
+          <span>Active</span>
+
+          <strong>
+            {{ getActiveCount() }}
+          </strong>
+
+        </div>
+
+        <div class="stat-card">
+
+          <span>Disabled</span>
+
+          <strong>
+            {{ getDisabledCount() }}
+          </strong>
+
+        </div>
+
+      </div>
+
+      <div class="panel">
+
+        <div class="panel-header">
+
+          <div>
+
+            <span class="panel-kicker">
+              ACCOUNT DIRECTORY
+            </span>
+
+            <h4>Registered Users</h4>
+
+          </div>
+
+          <span class="live-badge">
+            REAL DATA
+          </span>
+
+        </div>
+
+        @if (isLoading) {
+
+          <div class="empty-state">
+            Loading users...
+          </div>
+
+        } @else if (users.length === 0) {
+
+          <div class="empty-state">
+            No users found.
+          </div>
+
+        } @else {
+
+          <div class="table">
+
+            <div class="table-head">
+
+              <span>ID</span>
+              <span>EMAIL</span>
+              <span>ROLE</span>
+              <span>STATUS</span>
+              <span>ACTIONS</span>
+
+            </div>
+
+            @for (
+              user of users;
+              track user.id
+            ) {
+
+              @if (editingUserId === user.id) {
+
+                <div class="edit-user-form">
+
+                  <label>
+
+                    <span>Email</span>
+
+                    <input
+                      type="email"
+                      [(ngModel)]="editForm.email"
+                      placeholder="user@secureops.local"
+                    >
+
+                  </label>
+
+                  <label>
+
+                    <span>New Password</span>
+
+                    <input
+                      type="password"
+                      [(ngModel)]="editForm.password"
+                      placeholder="Leave empty to keep current password"
+                    >
+
+                  </label>
+
+                  <div class="edit-user-actions">
+
+                    <button
+                      class="secondary-button"
+                      type="button"
+                      (click)="cancelEdit()"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      class="primary-button"
+                      type="button"
+                      [disabled]="isSaving"
+                      (click)="saveEdit(user)"
+                    >
+                      {{
+                        isSaving
+                          ? 'Saving...'
+                          : 'Save Changes'
+                      }}
+                    </button>
+
+                  </div>
+
+                </div>
+
+              }
+
+              <div class="table-row">
+
+                <span class="user-id">
+                  #{{ user.id }}
+                </span>
+
+                <span class="email">
+                  {{ user.email }}
+                </span>
+
+                <select
+                  class="role-select"
+                  [ngModel]="user.role"
+                  (ngModelChange)="changeRole(user, $event)"
+                >
+
+                  @for (
+                    role of roles;
+                    track role
+                  ) {
+
+                    <option [ngValue]="role">
+                      {{ role }}
+                    </option>
+
+                  }
+
+                </select>
+
+                <span
+                  class="status"
+                  [class.active]="user.status === 'ACTIVE'"
+                  [class.disabled]="user.status === 'DISABLED'"
+                >
+                  {{ user.status }}
+                </span>
+
+                <div class="actions">
+
+                  <button
+                    class="action-button"
+                    type="button"
+                    (click)="startEdit(user)"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="action-button"
+                    type="button"
+                    [class.enable]="user.status === 'DISABLED'"
+                    [class.disable]="user.status === 'ACTIVE'"
+                    (click)="toggleStatus(user)"
+                  >
+                    {{
+                      user.status === 'ACTIVE'
+                        ? 'Disable'
+                        : 'Enable'
+                    }}
+                  </button>
+
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        }
+
+      </div>
+
+      <div class="security-note">
+
+        <strong>
+          Security protection
+        </strong>
+
+        <span>
+          The backend prevents removing the role from the last active
+          ADMIN and prevents disabling the last active ADMIN account.
+        </span>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
