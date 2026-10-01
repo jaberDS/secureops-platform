@@ -87,9 +87,28 @@ public class AuditLogService {
                         determineSeverity(action)
                 );
 
-        threatDetectionService.processEvent(
-                securityEvent
-        );
+        /*
+         * Day 11 Threat Detection integration.
+         *
+         * Threat detection must not break the existing
+         * authentication and audit logging flow.
+         *
+         * The audit log has already been saved before
+         * the detection engine is called.
+         */
+        try {
+
+            threatDetectionService.processEvent(
+                    securityEvent
+            );
+
+        } catch (RuntimeException exception) {
+
+            /*
+             * Detection failure is isolated from the
+             * existing audit/authentication operation.
+             */
+        }
 
         return savedAuditLog;
     }
@@ -197,3 +216,4 @@ public class AuditLogService {
         );
     }
 }
+

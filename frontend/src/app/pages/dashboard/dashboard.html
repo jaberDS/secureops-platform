@@ -33,10 +33,11 @@
         </button>
       }
 
-      @if (isAdmin() || isSecurityAnalyst()) {
+      @if (isSecurityAnalyst()) {
         <button
           class="nav-item"
           type="button"
+          (click)="goToSecurityEvents()"
         >
           <span class="nav-icon">&#9679;</span>
           <span>Security Events</span>
@@ -560,6 +561,7 @@
             <button
               class="view-all"
               type="button"
+              (click)="goToSecurityEvents()"
             >
               View all &#8594;
             </button>
@@ -921,3 +923,4 @@
   </main>
 
 </div>
+

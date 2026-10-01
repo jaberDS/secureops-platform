@@ -1,12 +1,16 @@
-import {
+﻿import {
   ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit
 } from '@angular/core';
+
 import { DatePipe } from '@angular/common';
+
 import { Router } from '@angular/router';
+
 import { EMPTY, interval, Subscription, timer } from 'rxjs';
+
 import { catchError, switchMap, tap } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
@@ -573,6 +577,10 @@ export class Dashboard implements OnInit, OnDestroy {
 
   goToIncidents(): void {
     this.router.navigate(['/incidents']);
+  }
+
+  goToSecurityEvents(): void {
+    this.router.navigate(['/security-events']);
   }
 
   logout(): void {
