@@ -1,6 +1,10 @@
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-noble
 
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --system --uid 10001 secureops
 
