@@ -5,6 +5,8 @@ import com.secureops.backend.dto.SecurityEventRequest;
 import com.secureops.backend.entity.*;
 import com.secureops.backend.repository.SecurityAlertRepository;
 import com.secureops.backend.repository.SecurityEventRepository;
+import com.secureops.backend.siem.SiemEvent;
+import com.secureops.backend.siem.SiemExporter;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,13 +17,16 @@ public class ThreatDetectionService {
 
     private final SecurityEventRepository eventRepository;
     private final SecurityAlertRepository alertRepository;
+    private final SiemExporter siemExporter;
 
     public ThreatDetectionService(
             SecurityEventRepository eventRepository,
-            SecurityAlertRepository alertRepository) {
+            SecurityAlertRepository alertRepository,
+            SiemExporter siemExporter) {
 
         this.eventRepository = eventRepository;
         this.alertRepository = alertRepository;
+        this.siemExporter = siemExporter;
     }
 
     public SecurityAlertResponse processEvent(
@@ -42,6 +47,8 @@ public class ThreatDetectionService {
         event.setTimestamp(LocalDateTime.now());
 
         event = eventRepository.save(event);
+
+        siemExporter.export(SiemEvent.from(event));
 
         DetectionResult result = detect(event);
 

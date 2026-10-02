@@ -7,6 +7,7 @@ import com.secureops.backend.entity.ThreatSeverity;
 import com.secureops.backend.repository.SecurityAlertRepository;
 import com.secureops.backend.repository.SecurityEventRepository;
 import com.secureops.backend.service.ThreatDetectionService;
+import com.secureops.backend.siem.SiemExporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,10 +29,13 @@ class ThreatDetectionServiceTest {
         eventRepository = mock(SecurityEventRepository.class);
         alertRepository = mock(SecurityAlertRepository.class);
 
+        SiemExporter siemExporter = mock(SiemExporter.class);
+
         detectionService =
                 new ThreatDetectionService(
                         eventRepository,
-                        alertRepository
+                        alertRepository,
+                        siemExporter
                 );
     }
 
