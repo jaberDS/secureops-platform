@@ -41,10 +41,10 @@ services:
 
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/secureops
       SPRING_DATASOURCE_USERNAME: secureops
-      SPLUNK_HEC_URL: http://192.168.50.10:8088
-      SPLUNK_HEC_TOKEN: ed81e155-e813-46af-9d6a-b608746ce795
-      SPLUNK_HEC_INDEX: main
-      SPLUNK_HEC_SOURCETYPE: secureops
+      SPLUNK_HEC_URL: ${SPLUNK_HEC_URL}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
+      SPLUNK_HEC_INDEX: ${SPLUNK_HEC_INDEX}
+      SPLUNK_HEC_SOURCETYPE: ${SPLUNK_HEC_SOURCETYPE}
 
 volumes:
   postgres_data:
