@@ -15,5 +15,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: secureops-backend
+    restart: unless-stopped
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "9001:9000"
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    environment:
+      SECUREOPS_DB_PASSWORD: secureops_dev_password
+      SECUREOPS_JWT_SECRET: SecureOpsDockerDevelopmentSecret_2026_ChangeThis
+      SECUREOPS_JWT_EXPIRATION_MS: 3600000
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/secureops
+      SPRING_DATASOURCE_USERNAME: secureops
+
 volumes:
   postgres_data:
